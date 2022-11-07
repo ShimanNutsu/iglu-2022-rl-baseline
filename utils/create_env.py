@@ -11,6 +11,9 @@ from wrappers.multitask import TargetGenerator, SubtaskGenerator
 from wrappers.reward_wrappers import RangetRewardFilledField, Closeness
 from wrappers.target_generator import RandomFigure
 
+from wrappers.EpisodeController import *
+
+
 
 class AutoResetWrapper(gym.Wrapper):
     def step(self, action):
@@ -38,19 +41,26 @@ def make_iglu(*args, **kwargs):
     custom_grid = np.ones((9, 11, 11))
     env = GridWorld(render=True, select_and_place=True, discretize=True, action_space='flying', max_steps=1000,   fake=kwargs.get('fake', False))
     env.set_task(Task("", custom_grid, invariant=False))
-
-    figure_generator = RandomFigure
     
-    env = TargetGenerator(env, fig_generator=figure_generator)
-    env = SubtaskGenerator(env)
+    tg = RandomTargetGenerator(None, 0.01)
+    sg = TrainSubtaskGenerator()
+    target = tg.get_target(None)
+    sg.set_new_task(target)
+    tc = TrainTaskController()
+    sc = TrainSubtaskController()
+    env = EpisodeController(env, tg, sg, tc, sc)
+    #figure_generator = RandomFigure
+    
+    #env = TargetGenerator(env, fig_generator=figure_generator)
+    #env = SubtaskGenerator(env)
     env = VisualObservationWrapper(env)
 
     env = Discretization(env)
     env = ColorWrapper(env)
-    env = RangetRewardFilledField(env)
+    #env = RangetRewardFilledField(env)
     env = Closeness(env)
 
-    env = SuccessRateFullFigure(env)
+    #env = SuccessRateFullFigure(env)
     env = MultiAgentWrapper(env)
     env = AutoResetWrapper(env)
 
