@@ -43,7 +43,7 @@ def make_iglu(*args, **kwargs):
     env.set_task(Task("", custom_grid, invariant=False))
     
     tg = RandomTargetGenerator(None, 0.01)
-    sg = TrainSubtaskGenerator()
+    sg = FlyingSubtaskGenerator()
     target = tg.get_target(None)
     sg.set_new_task(target)
     tc = TrainTaskController()
