@@ -117,7 +117,7 @@ class SubtaskGenerator():
     def empty(self):
         pass
 
-class TrainSubtaskGenerator(SubtaskGenerator):
+class FlyingSubtaskGenerator(SubtaskGenerator):
     def __init__(self):
         self.subtasks = None
         self.current_task = None
@@ -163,7 +163,7 @@ class TrainSubtaskGenerator(SubtaskGenerator):
 
 if __name__ == '__main__':
     tg = RandomTargetGenerator(None, 0.01)
-    sg = TrainSubtaskGenerator()
+    sg = FlyingSubtaskGenerator()
     target = tg.get_target(None)
     tg.plot_grid()
     #sg.set_new_task(target)
@@ -190,6 +190,7 @@ class EpisodeController(gym.Wrapper):
         obs = super().reset()
         self.target = self.target_generator.get_target(obs)
         self.subtask_generator.set_new_task(self.target)
+        self.current_grid = np.zeros((9, 11, 11))
         self.env.initialize_world(list(zip([], [], [], [])), (2, 2, 2, 2, 2))
         self.env.set_task(Task("", self.subtask_generator.get_next_subtask(), invariant=False))
         self.prev_obs = obs
@@ -200,6 +201,7 @@ class EpisodeController(gym.Wrapper):
         if self.task_controller.finished(self.subtask_generator, obs, self.prev_obs):
             done = True
         if self.subtask_controller.finished(self.subtask_generator, obs, self.prev_obs):
+            self.current_grid += self.subtask_generator.current_task
             self.env.set_task(Task("", self.subtask_generator.get_next_subtask(), invariant=False))
         self.prev_obs = obs
         return obs, reward, done, info
