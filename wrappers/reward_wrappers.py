@@ -57,6 +57,10 @@ def calc_new_blocks(current_grid, last_grid):
 
     new_blocks = np.where(grid != relief)
     if len(new_blocks[0]) > 1:
+        np.set_printoptions(threshold=100000)
+        print(grid)
+        print('---------')
+        print(relief)
         raise Exception(f"""
                Bulded more then one block! Logical error!!
                grid z_x_y- {np.where(current_grid != 0)}
@@ -73,6 +77,7 @@ class RangetRewardFilledField(RangetReward):
         self.fs = True
         self.info = dict()
         self.last_obs = None
+        self.last_grid = None
 
     def reset(self):
         self.fs = True
@@ -83,6 +88,8 @@ class RangetRewardFilledField(RangetReward):
 
     def step(self, action):
         obs, reward, done, info = super().step(action)
+        if self.last_grid is None:
+            return obs, reward, done, info
 
         if done:
             info['done'] = 'len_done_%s' % self.steps
@@ -91,7 +98,7 @@ class RangetRewardFilledField(RangetReward):
         self.steps += 1
 
         ### Calc count of new blocks
-        grid, relief, new_blocks = calc_new_blocks(obs['grid'], self.env.current_grid)
+        grid, relief, new_blocks = calc_new_blocks(obs['grid'], self.last_grid)
         info['done_grid'] = grid
         info['episode_extra_stats'] = info.get('episode_extra_stats', {})
 
@@ -128,15 +135,16 @@ class RangetRewardFilledField(RangetReward):
                             y_last_blcok - y_agent) >= 0 and z_agent >= z_last_block:
                         #     raise Exception("WRONG!")
                         reward += 0.5
-                full = self.env.one_round_reset(new_blocks, do)
+                #full = self.env.one_round_reset(new_blocks, do)
+                full = self.env.subtask_generator.empty()
                 info['done'] = 'right_move'
                 if full:
                     info['done'] = 'full'
-                    done = True
+                    #done = True
 
             if reward < 1:
                 info['done'] = 'mistake_%s' % self.steps
-                done = True
+                #done = True
                 self.env.update_field(new_blocks, do)
             if done:
                 info['episode_extra_stats']['SuccessRate'] = self.SR / self.tasks_count

@@ -153,7 +153,6 @@ class FlyingSubtaskGenerator(SubtaskGenerator):
         target = self.subtasks.get()
         grid = np.zeros((9, 11, 11))
         grid[target[2], target[0], target[1]] = target[3]
-        #print(grid.sum(), '--------------')
         self.current_task = grid
         return grid
 

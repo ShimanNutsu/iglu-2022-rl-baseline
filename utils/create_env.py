@@ -57,7 +57,7 @@ def make_iglu(*args, **kwargs):
 
     env = Discretization(env)
     env = ColorWrapper(env)
-    #env = RangetRewardFilledField(env)
+    env = RangetRewardFilledField(env)
     env = Closeness(env)
 
     #env = SuccessRateFullFigure(env)

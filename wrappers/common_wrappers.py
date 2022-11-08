@@ -227,10 +227,10 @@ class ColorWrapper(ActionsWrapper):
         if (action > self.color_space[0]) and (action < self.color_space[1]) and tcolor > 0:
             print("hi!")
             print(tcolor)
-            if isinstance(self.env.figure, RandomFigure):
-                action = int(self.color_space[0] + np.random.randint(1, 6))
-            else:
-                action = int(self.color_space[0] + tcolor)
+            #if isinstance(self.env.figure, RandomFigure):
+            #    action = int(self.color_space[0] + np.random.randint(1, 6))
+            #else:
+            action = int(self.color_space[0] + tcolor)
         yield action
 
 
