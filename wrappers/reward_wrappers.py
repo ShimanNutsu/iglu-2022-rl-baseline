@@ -136,7 +136,7 @@ class RangetRewardFilledField(RangetReward):
                         #     raise Exception("WRONG!")
                         reward += 0.5
                 #full = self.env.one_round_reset(new_blocks, do)
-                full = self.env.subtask_generator.empty()
+                full = self.env.task_controller.finished()
                 info['done'] = 'right_move'
                 if full:
                     info['done'] = 'full'
@@ -145,7 +145,7 @@ class RangetRewardFilledField(RangetReward):
             if reward < 1:
                 info['done'] = 'mistake_%s' % self.steps
                 #done = True
-                self.env.update_field(new_blocks, do)
+                #self.env.update_field(new_blocks, do)
             if done:
                 info['episode_extra_stats']['SuccessRate'] = self.SR / self.tasks_count
             self.tasks_count += 1

@@ -11,7 +11,7 @@ def make_iglu(*args, **kwargs):
     env = GridWorld(render=False, select_and_place=True, discretize=True, max_steps=1000)
     env.set_task(Task("", custom_grid, invariant=False))
     tg = RandomTargetGenerator(None, 0.1)
-    sg = TrainSubtaskGenerator()
+    sg = FlyingSubtaskGenerator()
     tc = TrainTaskController()
     sc = TrainSubtaskController()
     ec = EpisodeController(env, tg, sg, tc, sc)
@@ -77,10 +77,13 @@ class TrainTaskController(TaskController):
         pass
 
     def finished(self, subtask_generator, obs, prev_obs):
-        placed = (obs['inventory'] != prev_obs['inventory']).any()
         if subtask_generator.empty():
             return True
-        if placed and (obs['grid'] - prev_obs['grid'] - subtask_generator.current_task != 0).any():
+        modified = (obs['inventory'] != prev_obs['inventory']).any()
+        modification = obs['grid'] - prev_obs['grid']
+        if modification.sum() < 0:
+            modification[np.nonzero(modification)] = -1
+        if modified and (modification != subtask_generator.current_task).any():
             return True
         return False
 
@@ -129,7 +132,8 @@ class FlyingSubtaskGenerator(SubtaskGenerator):
         for i in range(len(where[0])):
             height = self.get_height(target_grid, where[0][i], where[1][i])
             for j in range(height):
-                target = (where[0][i], where[1][i], j, 1)
+                x, y = where[0][i], where[1][i]
+                target = (x, y, j, target_grid[j, x, y])
                 self.subtasks.put(target)
             holes = self.get_holes(target_grid, where[0][i], where[1][i], height)
             for hole in holes:
@@ -153,6 +157,7 @@ class FlyingSubtaskGenerator(SubtaskGenerator):
         target = self.subtasks.get()
         grid = np.zeros((9, 11, 11))
         grid[target[2], target[0], target[1]] = target[3]
+        #print(grid.sum(), '--------------')
         self.current_task = grid
         return grid
 
