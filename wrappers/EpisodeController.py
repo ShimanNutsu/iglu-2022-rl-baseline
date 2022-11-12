@@ -89,42 +89,6 @@ class TrainTaskController(TaskController):
 
 #---------------------------------------------
 
-if __name__ == '__main__':
-    tc = TrainTaskController()
-    class SG():
-        def __init__(self) -> None:
-            self.current_task = np.zeros((9, 11, 11))
-            self.current_task[1, 1, 2] = -1
-            pass
-            
-        def empty(self):
-            return False
-    sg = SG()
-    cur = np.random.random((9, 11, 11))
-    cur[1, 1, 1] = 3
-    sur = cur.copy()
-    sur[1, 1, 2] = 3
-    obs = {
-        'inventory': np.array([1, 1]),
-        'grid': cur
-    }
-    prev_obs = {
-        'inventory': np.zeros(2),
-        'grid': sur
-    }
-    print(tc.finished(sg, obs, prev_obs))
-    #tg = RandomTargetGenerator(None, 0.01)
-    #sg = FlyingSubtaskGenerator()
-    #target = tg.get_target(None)
-    #tg.plot_grid()
-    #sg.set_new_task(target)
-    #print(target)
-    #while not sg.empty():
-    #    zxy = np.nonzero(sg.get_next_subtask())
-    #    print(zxy, end=' ')
-    #    print(target[zxy])
-    pass
-
 class SubtaskController():
     def __init__(self) -> None:
         pass
@@ -169,7 +133,11 @@ class FlyingSubtaskGenerator(SubtaskGenerator):
             height = self.get_height(target_grid, where[0][i], where[1][i])
             for j in range(height):
                 x, y = where[0][i], where[1][i]
-                target = (x, y, j, target_grid[j, x, y])
+                if target_grid[j, x, y] == 0:
+                    to_put = 1
+                else:
+                    to_put = target_grid[j, x, y]
+                target = (x, y, j, to_put)
                 self.subtasks.put(target)
             holes = self.get_holes(target_grid, where[0][i], where[1][i], height)
             for hole in holes:
@@ -193,13 +161,27 @@ class FlyingSubtaskGenerator(SubtaskGenerator):
         target = self.subtasks.get()
         grid = np.zeros((9, 11, 11))
         grid[target[2], target[0], target[1]] = target[3]
-        #print(grid.sum(), '--------------')
+        print(grid.sum(), '--------------')
         self.current_task = grid
         return grid
 
     def empty(self):
         return self.subtasks.empty()
 #---------------------------------------------
+
+if __name__ == '__main__':
+    tc = TrainTaskController()
+    tg = RandomTargetGenerator(None, 0.01)
+    sg = FlyingSubtaskGenerator()
+    target = tg.get_target(None)
+    #tg.plot_grid()
+    sg.set_new_task(target)
+    print(target)
+    while not sg.empty():
+        zxy = np.nonzero(sg.get_next_subtask())
+        #print(zxy, end=' ')
+        #print(target[zxy])
+    pass
 
 class EpisodeController(gym.Wrapper):
     def __init__(self, env, target_generator, subtask_generator, task_controller, subtask_controller):
