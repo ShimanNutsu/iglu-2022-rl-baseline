@@ -6,7 +6,7 @@ from sample_factory.algorithms.utils.multi_agent_wrapper import MultiAgentWrappe
 
 from wrappers.common_wrappers import VisualObservationWrapper, \
     JumpAfterPlace, Discretization, ColorWrapper
-from wrappers.loggers import SuccessRateFullFigure
+from wrappers.loggers import SuccessRateFullFigure, VideoLogger
 from wrappers.multitask import TargetGenerator, SubtaskGenerator
 from wrappers.reward_wrappers import RangetRewardFilledField, Closeness
 from wrappers.target_generator import RandomFigure
@@ -61,6 +61,7 @@ def make_iglu(*args, **kwargs):
     env = Closeness(env)
 
     #env = SuccessRateFullFigure(env)
+    #env = VideoLogger(env)
     env = MultiAgentWrapper(env)
     env = AutoResetWrapper(env)
 

@@ -12,8 +12,8 @@ sys.path.append("./")
 from models.models import ResnetEncoderWithTarget
 from wrappers.common_wrappers import VisualObservationWrapper, \
     ColorWrapper, JumpAfterPlace, Discretization
-from wrappers.loggers import VideoLogger, Logger, \
-                    SuccessRateFullFigure, StatisticsLogger, Statistics, R1_score
+#from wrappers.loggers import VideoLogger, Logger, \
+#                    SuccessRateFullFigure, StatisticsLogger, Statistics, R1_score
 from wrappers.multitask import SubtaskGenerator, TargetGenerator
 from wrappers.reward_wrappers import RangetRewardFilledField
 
@@ -85,13 +85,15 @@ def register_custom_components():
     )
     register_custom_encoder('custom_env_encoder', ResnetEncoderWithTarget)
 
+from create_env import make_iglu
 
 def main():
     """Script entry point."""
     register_custom_components()
     cfg = parse_args(argv=['--algo=APPO', '--env=IGLUSilentBuilder-v0', '--experiment=TreeChopBaseline-iglu',
-                           '--experiments_root=force_envs_single_thread=False;num_envs_per_worker=1;num_workers=10',
-                           '--train_dir=./train_dir/0001'], evaluation=True)
+                           '--experiments_root=./',
+                           #'--experiments_root=force_envs_single_thread=False;num_envs_per_worker=1;num_workers=10',
+                           '--train_dir=./train_dir/0009'], evaluation=True)
     status = enjoy(cfg, 5000)
     return status
 

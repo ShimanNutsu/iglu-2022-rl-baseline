@@ -23,7 +23,7 @@ class VideoLogger(Wrapper):
         self.filename = None
         self.running_reward = 0
         self.actions = []
-        self.size = 512
+        self.size = 64
         self.flushed = False
         self.new_session = True
         self.add_to_name = ''
@@ -37,7 +37,7 @@ class VideoLogger(Wrapper):
             os.rename(f'{self.filename}.mp4', f'{self.filename}_{self.add_to_name}_{self.env.name}.mp4')
             self.obs = []
             self.new_session = True
-        if True or self.info['done'] != 'full' and self.info['done'] != 'right_move':
+        if True:# or self.info['done'] != 'full' and self.info['done'] != 'right_move':
             timestamp = datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
             uid = str(uuid.uuid4().hex)
             r = np.random.randint(0, 11)
@@ -74,7 +74,7 @@ class VideoLogger(Wrapper):
             image = obs['obs']
         elif 'obs' in info:
             image = info['obs']
-        self.add_to_name = info['done']
+        #self.add_to_name = info['done']
         font = cv2.FONT_HERSHEY_SIMPLEX  # org
         org = (8, 8)  # fontScale
         fontScale = 0.3  # Blue color in BGR

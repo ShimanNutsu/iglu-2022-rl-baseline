@@ -58,9 +58,9 @@ def calc_new_blocks(current_grid, last_grid):
     new_blocks = np.where(grid != relief)
     if len(new_blocks[0]) > 1:
         np.set_printoptions(threshold=100000)
-        print(grid)
-        print('---------')
-        print(relief)
+        #print(grid)
+        #print('---------')
+        #print(relief)
         raise Exception(f"""
                Bulded more then one block! Logical error!!
                grid z_x_y- {np.where(current_grid != 0)}
@@ -89,6 +89,7 @@ class RangetRewardFilledField(RangetReward):
     def step(self, action):
         obs, reward, done, info = super().step(action)
         if self.last_grid is None:
+            self.last_grid = obs['grid']
             return obs, reward, done, info
 
         if done:
@@ -136,7 +137,7 @@ class RangetRewardFilledField(RangetReward):
                         #     raise Exception("WRONG!")
                         reward += 0.5
                 #full = self.env.one_round_reset(new_blocks, do)
-                full = self.env.task_controller.finished()
+                full = self.env.task_controller.finished(self.env.subtask_generator, obs, self.env.prev_obs)
                 info['done'] = 'right_move'
                 if full:
                     info['done'] = 'full'

@@ -4,6 +4,7 @@ from gridworld import GridWorld
 import numpy as np
 from queue import Queue
 
+import matplotlib.pyplot as plt
 np.set_printoptions(threshold=100000)
 
 def make_iglu(*args, **kwargs):
@@ -60,7 +61,13 @@ class RandomTargetGenerator(TargetGenerator):
         pass
 
     def get_target(self, obs):
-        self.grid = np.random.choice(np.arange(0, 7), p = [1 - self.p] + [self.p / 6] * 6, size = (9, 11, 11))
+        #self.grid = np.random.choice(np.arange(0, 7), p = [1 - self.p] + [self.p / 6] * 6, size = (9, 11, 11))
+        coords = np.random.normal((5,5), 1.5, size=(10, 2)).astype(int)
+        coords[np.where(coords > 10)] = 10
+        coords[np.where(coords < 0)] = 0
+        fig = np.zeros((9,11,11))
+        fig[0,coords[:,0],coords[:,1]] = 1
+        self.grid = fig
         return self.grid
 
 #---------------------------------------------
@@ -174,11 +181,12 @@ if __name__ == '__main__':
     tg = RandomTargetGenerator(None, 0.01)
     sg = FlyingSubtaskGenerator()
     target = tg.get_target(None)
-    #tg.plot_grid()
-    sg.set_new_task(target)
-    print(target)
-    while not sg.empty():
-        zxy = np.nonzero(sg.get_next_subtask())
+    tg.plot_grid()
+    plt.savefig('aaa')
+    #sg.set_new_task(target)
+    #print(target)
+    #while not sg.empty():
+    #    zxy = np.nonzero(sg.get_next_subtask())
         #print(zxy, end=' ')
         #print(target[zxy])
     pass
@@ -207,14 +215,13 @@ class EpisodeController(gym.Wrapper):
 
     def step(self, action):
         obs, reward, done, info = super().step(action)
+        print('----------')
         if self.task_controller.finished(self.subtask_generator, obs, self.prev_obs):
             done = True
+            print('======================')
         elif self.subtask_controller.finished(self.subtask_generator, obs, self.prev_obs):
-            self.current_grid += self.subtask_generator.current_task
+            #self.current_grid += self.subtask_generator.current_task
             self.env.set_task(Task("", self.subtask_generator.get_next_subtask(), invariant=False))
+            print('+++++++++++++++')
         self.prev_obs = obs
-        return obs, reward, done, info
-
-    def observation(self, obs, reward=None, done=None, info=None):
-        obs['target_grid'] = self.env.task.target_grid
         return obs, reward, done, info
