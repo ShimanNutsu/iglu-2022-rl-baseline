@@ -77,7 +77,7 @@ def make_iglu(*args, **kwargs):
     env = RangetRewardFilledField(env)
     env = Closeness(env)
 
-    #env = SuccessRateFullFigure(env)
+    env = SuccessRateFullFigure(env)
     env = VideoLogger(env)
     #env = MultiAgentWrapper(env)
     #env = AutoResetWrapper(env)
@@ -100,7 +100,7 @@ def main():
     cfg = parse_args(argv=['--algo=APPO', '--env=IGLUSilentBuilder-v0', '--experiment=TreeChopBaseline-iglu',
                            '--experiments_root=./',
                            #'--experiments_root=force_envs_single_thread=False;num_envs_per_worker=1;num_workers=10',
-                           '--train_dir=./train_dir/0009'], evaluation=True)
+                           '--train_dir=./train_dir/0014'], evaluation=True)
     status = enjoy(cfg, 5000)
     return status
 

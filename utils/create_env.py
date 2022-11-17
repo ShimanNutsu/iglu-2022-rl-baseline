@@ -60,7 +60,7 @@ def make_iglu(*args, **kwargs):
     env = RangetRewardFilledField(env)
     env = Closeness(env)
 
-    #env = SuccessRateFullFigure(env)
+    env = SuccessRateFullFigure(env)
     #env = VideoLogger(env)
     env = MultiAgentWrapper(env)
     env = AutoResetWrapper(env)

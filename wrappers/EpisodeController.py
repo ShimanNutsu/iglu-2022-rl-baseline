@@ -215,7 +215,7 @@ class EpisodeController(gym.Wrapper):
 
     def step(self, action):
         obs, reward, done, info = super().step(action)
-        print('----------')
+        #print('----------')
         if self.task_controller.finished(self.subtask_generator, obs, self.prev_obs):
             done = True
             print('======================')

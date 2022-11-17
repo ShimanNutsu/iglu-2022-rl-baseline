@@ -1,7 +1,7 @@
 container:
  image: "iglu-fast-baseline:latest"
  command: "python main.py --config_path iglu_baseline.yaml"
- command: "python utils/enjoy.py"
+ #command: "python utils/enjoy.py"
   # command: bash
  tty: True
  environment:
