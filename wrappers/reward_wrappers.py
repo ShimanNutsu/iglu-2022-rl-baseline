@@ -38,11 +38,16 @@ class RangetReward(Wrapper):
         return np.sum(info['grid'] != 0)
 
     def check_goal_closeness(self, info=None, broi=None, remove=False):
-        roi = np.where(self.env.task.target_grid != 0)  # y x z
+        #roi = np.where(self.env.task.target_grid != 0)  # y x z
+        roi = np.where(self.env.subtask_generator.prev_task != 0)
+        #print(self.env.subtask_generator.prev_task)
         goal = np.mean(roi[1]), np.mean(roi[2]), np.mean(roi[0])
+        #print('::::::::::::::::::::', goal)
+        #print(self.env.task.target_grid[0])
         if broi is None:
             broi = np.where(info['grid'] != 0)  # y x z
         builds = np.mean(broi[1]), np.mean(broi[2]), np.mean(broi[0])
+        #print('::::::::::::::::::::', builds)
         dist = ((goal[0] - builds[0]) ** 2 +
                 (goal[1] - builds[1]) ** 2 +
                 (goal[2] - builds[2]) ** 2) ** 0.5
@@ -115,6 +120,7 @@ class RangetRewardFilledField(RangetReward):
             elif task > 0 and grid_block_count < relief_block_count:  # если нужно поставить кубик, а агент его удалил
                 reward = -0.001
             else:
+                print('bbbbbbbbbbbbbbbbbbbbbbbbb')
                 reward = self.check_goal_closeness(info, broi=new_blocks, remove=task < 0)  # иначе
 
             if task < 0:
