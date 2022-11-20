@@ -237,6 +237,8 @@ class EpisodeController(gym.Wrapper):
         #print(self.prev_obs['grid'][0])
         #print(self.subtask_generator.current_task[0])
         if self.task_controller.finished(self.subtask_generator, obs, self.prev_obs):
+            if not self.subtask_generator.empty():
+                self.env._task = Task("", self.subtask_generator.get_next_subtask())
 
             done = True
             print('======================')

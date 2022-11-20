@@ -40,14 +40,15 @@ class RangetReward(Wrapper):
     def check_goal_closeness(self, info=None, broi=None, remove=False):
         #roi = np.where(self.env.task.target_grid != 0)  # y x z
         roi = np.where(self.env.subtask_generator.prev_task != 0)
+        #print(';;;', self.env.subtask_generator.prev_task)
         #print(self.env.subtask_generator.prev_task)
         goal = np.mean(roi[1]), np.mean(roi[2]), np.mean(roi[0])
-        #print('::::::::::::::::::::', goal)
+        print('::::::::::::::::::::', goal)
         #print(self.env.task.target_grid[0])
         if broi is None:
             broi = np.where(info['grid'] != 0)  # y x z
         builds = np.mean(broi[1]), np.mean(broi[2]), np.mean(broi[0])
-        #print('::::::::::::::::::::', builds)
+        print('::::::::::::::::::::', builds)
         dist = ((goal[0] - builds[0]) ** 2 +
                 (goal[1] - builds[1]) ** 2 +
                 (goal[2] - builds[2]) ** 2) ** 0.5
