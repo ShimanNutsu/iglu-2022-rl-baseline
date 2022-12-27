@@ -14,7 +14,7 @@ from wrappers.common_wrappers import VisualObservationWrapper, \
     ColorWrapper, JumpAfterPlace, Discretization
 from wrappers.loggers import VideoLogger, Logger, \
                     SuccessRateFullFigure#, StatisticsLogger, Statistics, R1_score
-from wrappers.multitask import SubtaskGenerator, TargetGenerator
+#from wrappers.multitask import SubtaskGenerator, TargetGenerator
 from wrappers.reward_wrappers import RangetRewardFilledField, Closeness
 from wrappers.EpisodeController import *
 
@@ -56,11 +56,13 @@ def make_iglu(*args, **kwargs):
     from gridworld.env import GridWorld
     from gridworld.tasks.task import Task
     custom_grid = np.ones((9, 11, 11))
-    env = GridWorld(render=True, select_and_place=True, discretize=True, action_space='flying', max_steps=1000,   fake=kwargs.get('fake', False))
+    #env = GridWorld(render=True, select_and_place=True, discretize=True, action_space='flying', max_steps=1000,   fake=kwargs.get('fake', False))
+    #env = GridWorld(render=True, select_and_place=True, discretize=True, max_steps=1000,   fake=kwargs.get('fake', False))
+    env = GridWorld(render=True, select_and_place=True, discretize=True, max_steps=150,   fake=kwargs.get('fake', False))
     env.set_task(Task("", custom_grid, invariant=False))
     
     tg = RandomTargetGenerator(None, 0.01)
-    sg = FlyingSubtaskGenerator()
+    sg = WalkingSubtaskGenerator()
     target = tg.get_target(None)
     sg.set_new_task(target)
     tc = TrainTaskController()
@@ -70,10 +72,11 @@ def make_iglu(*args, **kwargs):
     
     #env = TargetGenerator(env, fig_generator=figure_generator)
     #env = SubtaskGenerator(env)
+    env = JumpAfterPlace(env)
     env = VisualObservationWrapper(env)
 
-    env = Discretization(env)
-    env = ColorWrapper(env)
+    #env = Discretization(env)
+    #env = ColorWrapper(env)
     env = RangetRewardFilledField(env)
     env = Closeness(env)
 
@@ -100,7 +103,7 @@ def main():
     cfg = parse_args(argv=['--algo=APPO', '--env=IGLUSilentBuilder-v0', '--experiment=TreeChopBaseline-iglu',
                            '--experiments_root=./',
                            #'--experiments_root=force_envs_single_thread=False;num_envs_per_worker=1;num_workers=10',
-                           '--train_dir=./train_dir/0014'], evaluation=True)
+                           '--train_dir=./train_dir/0045'], evaluation=True)
     status = enjoy(cfg, 5000)
     return status
 

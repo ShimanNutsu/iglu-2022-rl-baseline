@@ -6,14 +6,14 @@ from wrappers.common_wrappers import Wrapper
 def strict_reward_range():
     reward_range = [1, 0.25, 0.05, 0.001, -0.0001, -0.001, -0.01, -0.02, -0.03, -0.04, -0.05, -0.06, -0.07, -0.08,
                     -0.09]
-    for_long_distance = [-0.10 - 0.01 * i for i in range(50)]
+    for_long_distance = [-0.10 - 0.01 * i for i in range(4)]
     return reward_range + for_long_distance
 
 
 def remove_reward_range():
     reward_range = [1, 0.0001, 0.00, 0.00, -0.0001, -0.001, -0.01, -0.02, -0.03, -0.04, -0.05, -0.06, -0.07, -0.08,
                     -0.09]
-    for_long_distance = [-0.10 - 0.01 * i for i in range(50)]
+    for_long_distance = [-0.10 - 0.01 * i for i in range(4)]
     return reward_range + for_long_distance
 
 
@@ -90,12 +90,14 @@ class RangetRewardFilledField(RangetReward):
         self.SR = 0
         self.steps = 0
         self.tasks_count = 1
+        self.last_grid = None
         return super().reset()
 
     def step(self, action):
         obs, reward, done, info = super().step(action)
         if self.last_grid is None:
             self.last_grid = obs['grid']
+            info['done'] = 'len_done_%s' % self.steps
             return obs, reward, done, info
 
         if done:
@@ -111,7 +113,7 @@ class RangetRewardFilledField(RangetReward):
 
         ### Reward calculation
         reward = 0
-        task = np.sum(self.env.task.target_grid)  # if < 0 - task if remove, else task is build
+        task = np.sum(self.env.subtask_generator.prev_task)  # if < 0 - task if remove, else task is build
         if len(new_blocks[0]) >= 1:
             grid_block_count = len(np.where(grid != 0)[0])
             relief_block_count = len(np.where(relief != 0)[0])
@@ -121,19 +123,18 @@ class RangetRewardFilledField(RangetReward):
             elif task > 0 and grid_block_count < relief_block_count:  # если нужно поставить кубик, а агент его удалил
                 reward = -0.001
             else:
-                print('bbbbbbbbbbbbbbbbbbbbbbbbb')
                 reward = self.check_goal_closeness(info, broi=new_blocks, remove=task < 0)  # иначе
 
             if task < 0:
                 do = 0
             elif task > 0:
-                do = int(np.sum(self.env.task.target_grid))
+                do = int(np.sum(self.env.subtask_generator.prev_task))
 
             ### Add reward for block under agent
             x_agent, z_agent, y_agent = obs['agentPos'][:3]
             x_agent, y_agent = x_agent + 5, y_agent + 5
             x_agent, y_agent = int(x_agent + 0.5), int(y_agent + 0.5)
-            z_last_block, x_last_block, y_last_blcok = np.where(self.env.task.target_grid != 0)
+            z_last_block, x_last_block, y_last_blcok = np.where(self.env.subtask_generator.prev_task != 0)
             if reward == 1:
                 self.SR += 1
                 if x_last_block == x_agent and y_last_blcok == y_agent and (z_agent - z_last_block) <= 2:

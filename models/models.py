@@ -68,4 +68,3 @@ class ResnetEncoderWithTarget(EncoderBase):
 
         x = self.forward_fc_blocks(head_input)
         return x
-
