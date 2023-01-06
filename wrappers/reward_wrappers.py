@@ -113,7 +113,11 @@ class RangetRewardFilledField(RangetReward):
 
         ### Reward calculation
         reward = 0
-        task = np.sum(self.env.subtask_generator.prev_task)  # if < 0 - task if remove, else task is build
+        if not done:
+            current_task = self.env.subtask_generator.prev_task
+        else:
+            current_task = self.env.subtask_generator.current_task
+        task = np.sum(current_task)  # if < 0 - task if remove, else task is build
         if len(new_blocks[0]) >= 1:
             grid_block_count = len(np.where(grid != 0)[0])
             relief_block_count = len(np.where(relief != 0)[0])
@@ -128,13 +132,13 @@ class RangetRewardFilledField(RangetReward):
             if task < 0:
                 do = 0
             elif task > 0:
-                do = int(np.sum(self.env.subtask_generator.prev_task))
+                do = int(np.sum(current_task))
 
             ### Add reward for block under agent
             x_agent, z_agent, y_agent = obs['agentPos'][:3]
             x_agent, y_agent = x_agent + 5, y_agent + 5
             x_agent, y_agent = int(x_agent + 0.5), int(y_agent + 0.5)
-            z_last_block, x_last_block, y_last_blcok = np.where(self.env.subtask_generator.prev_task != 0)
+            z_last_block, x_last_block, y_last_blcok = np.where(current_task != 0)
             if reward == 1:
                 self.SR += 1
                 if x_last_block == x_agent and y_last_blcok == y_agent and (z_agent - z_last_block) <= 2:

@@ -45,32 +45,34 @@ class TargetGenerator:
     def get_target(self, obs):
         raise NotImplementedError("Using virtual class " + str(self.__class__.__name__))
 
-    def plot_grid(self, text=None):
-        import matplotlib.pyplot as plt
-        from matplotlib.ticker import MaxNLocator
+def plot_grid(voxel, text=None, file=None):
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator
 
-        voxel = self.grid
-        idx2color = {1: 'r', 2: 'c', 3: 'y', 4: 'g', 5: 'b', 6: 'm'}
-        vox = voxel.transpose(1, 2, 0)
-        colors = np.empty(vox.shape, dtype=str)
-        for i in range(vox.shape[0]):
-            for j in range(vox.shape[1]):
-                for k in range(vox.shape[2]):
-                    if vox[i, j, k] != 0:
-                        colors[i, j, k] = idx2color[vox[i, j, k]]
+    idx2color = {1: 'r', 2: 'c', 3: 'y', 4: 'g', 5: 'b', 6: 'm'}
+    vox = voxel.transpose(1, 2, 0)
+    colors = np.empty(vox.shape, dtype=str)
+    for i in range(vox.shape[0]):
+        for j in range(vox.shape[1]):
+            for k in range(vox.shape[2]):
+                if vox[i, j, k] != 0:
+                    colors[i, j, k] = idx2color[vox[i, j, k]]
 
-        ax = plt.figure().add_subplot(projection='3d')
-        ax.voxels(vox, facecolors=colors, edgecolor='k', )
+    ax = plt.figure().add_subplot(projection='3d')
+    ax.voxels(vox, facecolors=colors, edgecolor='k', )
 
-        ax.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=11))
-        ax.yaxis.set_major_locator(MaxNLocator(integer=True, nbins=11))
-        ax.zaxis.set_major_locator(MaxNLocator(integer=True, nbins=9))
-        ax.set_xticks(np.arange(0, 12, 1), minor=True)
-        ax.set_yticks(np.arange(0, 12, 1), minor=True)
-        ax.set_zticks(np.arange(0, 9, 1), minor=True)
-        if text is not None:
-            plt.annotate(text, (0, 0), (0, -20), xycoords='axes fraction', textcoords='offset points', va='top')
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=11))
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True, nbins=11))
+    ax.zaxis.set_major_locator(MaxNLocator(integer=True, nbins=9))
+    ax.set_xticks(np.arange(0, 12, 1), minor=True)
+    ax.set_yticks(np.arange(0, 12, 1), minor=True)
+    ax.set_zticks(np.arange(0, 9, 1), minor=True)
+    if text is not None:
+        plt.annotate(text, (0, 0), (0, -20), xycoords='axes fraction', textcoords='offset points', va='top')
+    if file is None:
         plt.show()
+    else:
+        plt.savefig(file)
 
 class RandomTargetGenerator(TargetGenerator):
     def __init__(self, config, p):
@@ -89,9 +91,9 @@ class RandomTargetGenerator(TargetGenerator):
         fig[0,coords[:,0],coords[:,1]] = 1
         self.grid = fig
         for xyz in np.transpose(np.where(fig)):
-            h = np.random.choice(np.arange(1, 5))
+            h = np.random.choice(np.arange(1, 9))
             for i in range(h):
-                if np.random.choice([0, 1], p=[0.1, 0.9]):
+                if np.random.choice([0, 1], p=[0.5, 0.5]):
                     fig[i, xyz[1], xyz[2]] = 1
         self.grid = fig
 
@@ -186,6 +188,41 @@ class SubtaskGenerator():
     def empty(self):
         pass
 
+    def test(self, target, metric):
+        self.set_new_task(target)
+        grid = np.zeros((9, 11, 11))
+        while not self.empty():
+            s0 = self.get_next_subtask()
+            s = np.where(s0)
+            grid[s[0], s[1], s[2]] += s0[s[0], s[1], s[2]]
+        return metric(target, grid)
+
+    def visualize(self, target, file):
+        from PIL import Image
+        import os
+
+        plot_grid(target, file='targ.png')
+
+        targ = Image.open('targ.png').resize((300, 200))
+        self.set_new_task(a)
+        grid = np.zeros((9, 11, 11))
+
+        import cv2
+        videodims = (640, 480)
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")    
+        video = cv2.VideoWriter(file + ".mp4", fourcc, 2, videodims)
+
+        while not self.empty():
+            s0 = self.get_next_subtask()
+            s = np.where(s0)
+            grid[s[0], s[1], s[2]] += s0[s[0], s[1], s[2]]
+            plot_grid(grid, file='buf.png')
+            step = Image.open('buf.png')
+            step.paste(targ, (0, 0))
+            video.write(cv2.cvtColor(np.array(step), cv2.COLOR_RGB2BGR))
+        os.remove("buf.png")
+        os.remove("targ.png")
+
 class WalkingSubtaskGenerator(SubtaskGenerator):
     def __init__(self):
         self.subtasks = Queue()
@@ -209,7 +246,7 @@ class WalkingSubtaskGenerator(SubtaskGenerator):
             holes = self.get_holes(target_grid, where[0][i], where[1][i], height)
             
             try:
-                if x < 9 and y < 9:
+                if x < 10 and y < 10:
                     for aux in range(holes[-1]):
                         target = (x + 2, y + 2, aux, 1)
                         self.subtasks.put(target)
@@ -220,6 +257,9 @@ class WalkingSubtaskGenerator(SubtaskGenerator):
                             self.subtasks.put(target)
                             cur -= 1
                         target = (x, y, hole, -1)
+                        self.subtasks.put(target)
+                    for i in range(cur, 0, -1):
+                        target = (x + 2, y + 2, i - 1, -1)
                         self.subtasks.put(target)
             except:
                 pass
@@ -270,7 +310,7 @@ class FlyingSubtaskGenerator(SubtaskGenerator):
                 target = (x, y, j, to_put)
                 self.subtasks.put(target)
             holes = self.get_holes(target_grid, where[0][i], where[1][i], height)
-            for hole in holes:
+            for hole in reversed(holes):
                 target = (where[0][i], where[1][i], hole, -1)
                 self.subtasks.put(target)
         pass
@@ -303,14 +343,9 @@ class FlyingSubtaskGenerator(SubtaskGenerator):
 if __name__ == '__main__':
     gr = RandomTargetGenerator(None, 0.01)
     a = gr.get_target(None)
-    print(np.transpose(np.where(a)))
-    dd = WalkingSubtaskGenerator()
-    dd.set_new_task(a)
-    while not dd.empty():
-        xxx = dd.get_next_subtask()
-        s = np.where(xxx)
-        #print(s, xxx[s])
-    pass
+    st = WalkingSubtaskGenerator()
+    st.visualize(a, 'walking')
+
 
 class EpisodeController(gym.Wrapper):
     def __init__(self, env, target_generator, subtask_generator, task_controller, subtask_controller):
