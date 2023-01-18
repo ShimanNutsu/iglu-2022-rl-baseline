@@ -14,6 +14,64 @@ logger = logging.getLogger(__file__)
 IGLU_ENABLE_LOG = os.environ.get('IGLU_ENABLE_LOG', '')
 
 
+class SuccessRateLogger(gym.Wrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        self.subtask_counter = 0
+        self.SR = 0
+
+    def reset(self):
+        obs = super().reset()
+        self.subtask_counter = 0
+        self.SR = 0
+        return obs
+
+    def step(self, action):
+        obs, reward, done, info = super().step(action)
+        modification = obs['grid'] - self.prev_obs['grid']
+        if modification.sum() != 0:
+            self.subtask_counter += 1
+            action_type = int(2 * (action - 16.5))
+            task_type = 1 if self.env.task.target_grid.sum() > 0 else -1
+            if action_type == task_type:
+                block = obs['grid'] - self.prev_obs['grid']
+                block[np.nonzero(block)] = 1 if block.sum() > 0 else -1
+                target_block = self.env.task.target_grid
+
+                coords1 = np.transpose(np.nonzero(block))
+                coords2 = np.transpose(np.nonzero(target_block))
+
+                if (coords1 == coords2).all():
+                    self.SR += 1
+            if self.task_controller.finished(obs, self.prev_obs, self.env.task.target_grid) or self.subtask_generator.empty():
+                info['episode_extra_stats'] = info.get('episode_extra_stats', {})
+                info['episode_extra_stats']['SuccessRate'] = self.SR / self.subtask_counter
+        return obs, reward, done, info
+
+class CompletedRateLogger(gym.Wrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        self.subtask_counter = 0
+        self.SR = 0
+
+    def reset(self):
+        obs = super().reset()
+        self.subtask_counter = 0
+        self.SR = 0
+        return obs
+
+    def step(self, action):
+        obs, reward, done, info = super().step(action)
+        modification = obs['grid'] - self.prev_obs['grid']
+        if modification.sum() != 0:
+            if self.task_controller.finished(obs, self.prev_obs, self.env.task.target_grid):
+                info['episode_extra_stats'] = info.get('episode_extra_stats', {})
+                info['episode_extra_stats']['CompletedRate'] = 0
+            elif self.subtask_generator.empty():
+                info['episode_extra_stats'] = info.get('episode_extra_stats', {})
+                info['episode_extra_stats']['CompletedRate'] = 1
+        return obs, reward, done, info
+
 class VideoLogger(Wrapper):
     def __init__(self, env, every=50, draw_logs=False):
         super().__init__(env)

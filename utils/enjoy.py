@@ -18,6 +18,8 @@ from wrappers.loggers import VideoLogger, Logger, \
 from wrappers.reward_wrappers import RangetRewardFilledField, Closeness
 from wrappers.EpisodeController import *
 
+from utils.create_env import make_iglu
+
 from wrappers.target_generator import  RandomFigure, CustomFigure
 
 def tasks_from_database():
@@ -52,7 +54,7 @@ def castom_tasks():
     tasks['[0:3, 8:10, 8:10]'] = t5
     return tasks
     
-def make_iglu(*args, **kwargs):
+def makhe_iglu(*args, **kwargs):
     from gridworld.env import GridWorld
     from gridworld.tasks.task import Task
     custom_grid = np.ones((9, 11, 11))
@@ -62,7 +64,8 @@ def make_iglu(*args, **kwargs):
     env.set_task(Task("", custom_grid, invariant=False))
     
     tg = RandomTargetGenerator(None, 0.01)
-    sg = WalkingSubtaskGenerator()
+    #sg = WalkingSubtaskGenerator()
+    sg = NavigationSubtaskGenerator()
     target = tg.get_target(None)
     sg.set_new_task(target)
     tc = TrainTaskController()
@@ -103,7 +106,7 @@ def main():
     cfg = parse_args(argv=['--algo=APPO', '--env=IGLUSilentBuilder-v0', '--experiment=TreeChopBaseline-iglu',
                            '--experiments_root=./',
                            #'--experiments_root=force_envs_single_thread=False;num_envs_per_worker=1;num_workers=10',
-                           '--train_dir=./train_dir/0045'], evaluation=True)
+                           '--train_dir=./train_dir/0022'], evaluation=True)
     status = enjoy(cfg, 5000)
     return status
 

@@ -195,6 +195,33 @@ class Discretization(ActionsWrapper):
             action = raw_action
         yield action
 
+class InitWrapper(gym.Wrapper):
+    def __init__(self, env, target_generator, subtask_generator, task_controller, subtask_controller, world_initializer, max_subtask_step=150):
+        super().__init__(env)
+        self.target_generator = target_generator
+        self.subtask_generator = subtask_generator
+        self.task_controller = task_controller
+        self.subtask_controller = subtask_controller
+        self.world_initializer = world_initializer
+
+class StorePrevObsWrapper(gym.Wrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        self.prev_obs = None
+        self.cur_obs = None
+    
+    def reset(self):
+        obs = super().reset()
+        self.prev_obs = obs
+        self.cur_obs = obs
+        return obs
+
+    def step(self, action):
+        obs, reward, done, info = super().step(action)
+        self.prev_obs = self.cur_obs
+        self.cur_obs = obs
+        return obs, reward, done, info
+
 
 class JumpAfterPlace(ActionsWrapper):
     def __init__(self, env):

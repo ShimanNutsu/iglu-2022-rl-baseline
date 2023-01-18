@@ -25,7 +25,7 @@ class Q():
 import matplotlib.pyplot as plt
 np.set_printoptions(threshold=100000)
 
-def make_iglu(*args, **kwargs):
+def make_figlu(*args, **kwargs):
     custom_grid = np.ones((9, 11, 11))
     env = GridWorld(render=False, select_and_place=True, discretize=True, max_steps=1000)
     env.set_task(Task("", custom_grid, invariant=False))
@@ -42,7 +42,7 @@ class TargetGenerator:
         self.grid = None
         pass
     
-    def get_target(self, obs):
+    def get_target(self):
         raise NotImplementedError("Using virtual class " + str(self.__class__.__name__))
 
 def plot_grid(voxel, text=None, file=None):
@@ -80,22 +80,22 @@ class RandomTargetGenerator(TargetGenerator):
         self.p = p
         pass
 
-    def get_target(self, obs):
+    def get_target(self):
         #self.grid = np.random.choice(np.arange(0, 7), p = [1 - self.p] + [self.p / 6] * 6, size = (9, 11, 11))
         #self.grid[4, 4, 4] = 1
         
-        coords = np.random.normal((5,5), 1.5, size=(10, 2)).astype(int)
-        coords[np.where(coords > 10)] = 10
-        coords[np.where(coords < 0)] = 0
-        fig = np.zeros((9,11,11))
-        fig[0,coords[:,0],coords[:,1]] = 1
-        self.grid = fig
-        for xyz in np.transpose(np.where(fig)):
-            h = np.random.choice(np.arange(1, 9))
-            for i in range(h):
-                if np.random.choice([0, 1], p=[0.5, 0.5]):
-                    fig[i, xyz[1], xyz[2]] = 1
-        self.grid = fig
+        #coords = np.random.normal((5,5), 1.5, size=(10, 2)).astype(int)
+        #coords[np.where(coords > 10)] = 10
+        #coords[np.where(coords < 0)] = 0
+        #fig = np.zeros((9,11,11))
+        #fig[0,coords[:,0],coords[:,1]] = 1
+        #self.grid = fig
+        #for xyz in np.transpose(np.where(fig)):
+        #    h = np.random.choice(np.arange(1, 9))
+        #    for i in range(h):
+        #        if np.random.choice([0, 1], p=[0.5, 0.5]):
+        #            fig[i, xyz[1], xyz[2]] = 1
+        #self.grid = fig
 
         #self.grid = np.zeros((9, 11, 11))
         #self.grid[0][7][6] = 1
@@ -120,11 +120,11 @@ class RandomTargetGenerator(TargetGenerator):
         #    for h in range(4):
         #        self.grid[h, idx[0], idx[1]] = np.random.choice([0, 1], p=[0.5, 0.5])
 
-        #self.grid = np.zeros((9, 11, 11))
-        #x = np.random.choice(np.arange(4, 9))
-        #y = np.random.choice(np.arange(4, 9))
+        self.grid = np.zeros((9, 11, 11))
+        x = np.random.choice(np.arange(11))
+        y = np.random.choice(np.arange(11))
         #z = np.random.choice(np.arange(1, 4))
-        #self.grid[z, x, y] = 1
+        self.grid[0, x, y] = 1
 
 
         return self.grid
@@ -135,21 +135,19 @@ class TaskController():
     def __init__(self) -> None:
         pass
 
-    def finished(self, subtask_controller, obs, prev_obs):
+    def finished(self, obs, prev_obs, task):
         raise NotImplementedError("Using virtual class " + str(self.__class__.__name__))
 
 class TrainTaskController(TaskController):
     def __init__(self) -> None:
         pass
 
-    def finished(self, subtask_generator, obs, prev_obs):
-        if subtask_generator.empty():
-            return True
+    def finished(self, obs, prev_obs, task):
         modified = (obs['grid'] != prev_obs['grid']).any()
         modification = obs['grid'] - prev_obs['grid']
         modification[modification > 0] = 1
         modification[modification < 0] = -1
-        if modified and (modification != subtask_generator.current_task).any():
+        if modified and (modification != task).any():
             return True
         return False
 
@@ -159,14 +157,14 @@ class SubtaskController():
     def __init__(self) -> None:
         pass
 
-    def finished(self, subtask_generator, obs, prev_obs):
+    def finished(self, obs, prev_obs, task):
         raise NotImplementedError("Using virtual class " + str(self.__class__.__name__))
 
 class TrainSubtaskController(SubtaskController):
     def __init__(self) -> None:
         pass
 
-    def finished(self, subtask_generator, obs, prev_obs):
+    def finished(self, obs, prev_obs, task):
         if prev_obs is None:
             return False
         if (obs['grid'] != prev_obs['grid']).any():
@@ -328,128 +326,163 @@ class FlyingSubtaskGenerator(SubtaskGenerator):
         return holes
 
     def get_next_subtask(self):
+        if self.subtasks.empty():
+            return None
+        target = self.subtasks.get()
+        grid = np.zeros((9, 11, 11))
+        grid[target[2], target[0], target[1]] = target[3]
+        #if not (self.current_task is None):
+        #    self.prev_task = self.current_task.copy()
+        #self.current_task = grid
+        return grid
+
+    def empty(self):
+        return self.subtasks.empty()
+
+class NavigationSubtaskGenerator(SubtaskGenerator):
+    def __init__(self):
+        self.subtasks = None
+        self.prev_task = None
+        self.current_task = None
+        self.put_prob = 1.0
+
+    def set_new_task(self, target):
+        from copy import deepcopy
+        self.target = target
+        self.subtasks = Queue()
+
+        if np.random.choice([0, 1], p=[1-self.put_prob, self.put_prob]):
+            free = set()
+            where = list(np.where(target))
+            for i in range(11):
+                for j in range(11):
+                    if np.random.choice([0, 1], p=[0.9, 0.1]):
+                        free.add((i, j, 0))
+            for i in range(3):
+                neighbs = deepcopy(where)
+                neighbs[i] += 1
+                for j in range(len(neighbs[0])):
+                    targ = (neighbs[1][j], neighbs[2][j], neighbs[0][j])
+                    if targ[0] >=0 and targ[0] < 11:
+                        if targ[1] >=0 and targ[1] < 11:
+                            if targ[2] >=0 and targ[2] < 9:
+                                free.add(targ)
+
+                neighbs[i] -= 2
+                for j in range(len(neighbs[0])):
+                    targ = (neighbs[1][j], neighbs[2][j], neighbs[0][j])
+                    if targ[0] >=0 and targ[0] < 11:
+                        if targ[1] >=0 and targ[1] < 11:
+                            if targ[2] >=0 and targ[2] < 9:
+                                free.add(targ)
+
+            for j in range(len(neighbs[0])):
+                free.discard((where[1][j], where[2][j], where[0][j]))
+            n = len(free)
+            i = np.random.choice(np.arange(n))
+            free = list(free)
+            targ = (free[i][0], free[i][1], free[i][2], 1)
+            self.subtasks.put(targ)
+
+        else:
+            blocks = np.where(self.target)
+            n = len(blocks[0])
+            i = np.random.choice(np.arange(n))
+            self.subtasks.put((blocks[1][i], blocks[2][i], blocks[0][i], -1))
+
+    def get_next_subtask(self):
         target = self.subtasks.get()
         grid = np.zeros((9, 11, 11))
         grid[target[2], target[0], target[1]] = target[3]
         if not (self.current_task is None):
             self.prev_task = self.current_task.copy()
         self.current_task = grid
+        self.prev_task = self.current_task.copy()
         return grid
 
     def empty(self):
         return self.subtasks.empty()
+
+class WorldInitializer:
+    def __init__(self):
+        pass
+
+    def init_world(self, target):
+        x = np.random.choice(np.arange(11))
+        y = np.random.choice(np.arange(11))
+        z = np.random.choice(np.arange(11))
+
+        pos = (x - 5, z + 2, y - 5, 0, 0)
+
+        start_grid = np.zeros((9, 11, 11))
+        
+        return start_grid, pos
+
+
 #---------------------------------------------
 
 if __name__ == '__main__':
     gr = RandomTargetGenerator(None, 0.01)
     a = gr.get_target(None)
-    st = WalkingSubtaskGenerator()
-    st.visualize(a, 'walking')
+    st = NavigationSubtaskGenerator()
+    st.set_new_task(a)
+    print(np.transpose(np.where(a)))
+    while not st.empty():
+        print(np.where(st.get_next_subtask()))
 
 
 class EpisodeController(gym.Wrapper):
-    def __init__(self, env, target_generator, subtask_generator, task_controller, subtask_controller):
+    def __init__(self, env, target_generator, subtask_generator, task_controller, subtask_controller, world_initializer, max_subtask_step=150):
         super().__init__(env)
         self.target_generator = target_generator
         self.subtask_generator = subtask_generator
         self.task_controller = task_controller
         self.subtask_controller = subtask_controller
+        self.world_initializer = world_initializer
 
-        self.prev_obs = None
+        self.max_subtask_step = max_subtask_step
         self.target = None
-        self.current_grid = np.zeros((9, 11, 11))
+        self.subtask_step = 0
+        self.steps = 0
         pass
 
-    def _get_subgrid(self, grid):
-        sz = int(len(np.where(grid)[0])*0.6) - 1
-        if sz < 3:
-            n = 0
-        else:
-            n = np.random.choice(list(range(sz)), p=[0.7] + [0.3 / (sz-1) for _ in range(sz-1)])
-        n = 0
-        subgrid = np.zeros((9, 11, 11))
+    def reset(self):
+        obs = super().reset()
+        self.subtask_step = 0
+        self.steps = 0
+        self.target = self.target_generator.get_target()
+        self.subtask_generator.set_new_task(self.target)
+        start_grid, start_pos = self.world_initializer.init_world(self.target)
+        obs['grid'] = start_grid
 
-        whr = np.transpose(np.where(grid))
-        for i, xyz in enumerate(whr):
-            if i == n:
-                break
-            subgrid[xyz[0], xyz[1], xyz[2]] = 1
-
-        grid = grid - subgrid
-
-        blocks = np.where(subgrid)
+        blocks = np.where(start_grid)
         ind = np.lexsort((blocks[0], blocks[2], blocks[1]))
         Zorig, Xorig, Yorig = blocks[0][ind] - 1, blocks[1][ind] - 5, blocks[2][ind] - 5
         ids = [1] * len(Zorig)
         starting_grid = list(zip(Xorig, Zorig, Yorig, ids))
-        return starting_grid, grid, subgrid
 
-    def reset(self):
-        #while not self.subtask_generator.empty():
-        #    self.subtask_generator.get_next_subtask()
-        #import sys
-        #print(sys.getrefcount(self.subtask_generator.subtasks.queue))
-        #print(sys.getrefcount(self))
-        #self.subtask_generator.subtasks.queue.clear()
-        obs = super().reset()
-        self.prev_obs = obs
-        self.target = self.target_generator.get_target(obs)
-        #strt, gr, self.prev_obs['grid'] = self._get_subgrid(self.target)
-        #self.target = gr
-
-        try:
-            pos = (strt[-1][1], strt[-1][2], strt[-1][0] + 2, 0, 0)
-        except:
-            pos = (0, 0, 0, 0, 0)
-        #self.env.initialize_world(strt, pos)
-        self.subtask_generator.set_new_task(self.target)
-        n = np.transpose(np.where(self.target)).shape[0]
-        #n = 3*n
-        preb = np.random.choice(np.arange(1, n))
-        start_grid = np.zeros((9, 11, 11))
-        last = [2, 5, 5]
-        if np.random.choice([0, 1], p=[0.3, 0.7]):
-            self.env.initialize_world([], (0, 0, 0, 0, 0))
-        else:
-            for i in range(preb):
-                task = self.subtask_generator.get_next_subtask()
-                start_grid += task
-                if task.sum() > 0:
-                    last = np.transpose(np.where(task))[0]
-                last_act = task.sum()
-            pos = (last[1] - 5, last[0] + 2, last[2] - 5, 0, -90 if last_act == 1 else 0)
-            blocks = np.where(start_grid)
-            ind = np.lexsort((blocks[0], blocks[2], blocks[1]))
-            Zorig, Xorig, Yorig = blocks[0][ind] - 1, blocks[1][ind] - 5, blocks[2][ind] - 5
-            ids = [1] * len(Zorig)
-            starting_grid = list(zip(Xorig, Zorig, Yorig, ids))
-            self.env.initialize_world(starting_grid, pos)
-
-        task = self.subtask_generator.get_next_subtask()
-        self.env.set_task(Task("", task, invariant=False))
-        self.prev_obs['grid'] = start_grid
-        self.current_grid = np.zeros((9, 11, 11))
-        self.steps = 0
-        self.sub_step = 0
+        self.env.initialize_world(starting_grid, start_pos)
+        subtask = self.subtask_generator.get_next_subtask()
+        self.env.set_task(Task("", subtask, invariant=False))
         return obs
 
     def step(self, action):
-        self.sub_step += 1
         obs, reward, done, info = super().step(action)
-        if self.task_controller.finished(self.subtask_generator, obs, self.prev_obs) or self.sub_step > 150:
-            if not self.subtask_generator.empty():
-                self.env._task = Task("", self.subtask_generator.get_next_subtask(), invariant=False)
 
-            done = True
-            print('======================')
-        elif self.subtask_controller.finished(self.subtask_generator, obs, self.prev_obs):
-            self.sub_step = 0
-            #self.env.set_task(Task("", self.subtask_generator.get_next_subtask(), invariant=False))
-            self.env._task = Task("", self.subtask_generator.get_next_subtask(), invariant=False)
-            print('+++++++++++++++')
-        else:
-            pass
-            #print(';', end='')
-        self.prev_obs = obs
         self.steps += 1
+        self.subtask_step += 1
+
+        task = self.env.task.target_grid
+        if self.task_controller.finished(obs, self.prev_obs, task) or self.subtask_step > self.max_subtask_step:
+            print(1)
+            done = True
+        elif self.subtask_controller.finished(obs, self.prev_obs, task):
+            print(2)
+            subtask = self.subtask_generator.get_next_subtask()
+            if subtask is None:
+                done = True
+            else:
+                self.env.set_task(Task("", subtask, invariant=False))
+            self.subtask_step = 0
+
         return obs, reward, done, info

@@ -2,6 +2,8 @@ import numpy as np
 
 from wrappers.common_wrappers import Wrapper
 
+import gym
+
 
 def strict_reward_range():
     reward_range = [1, 0.25, 0.05, 0.001, -0.0001, -0.001, -0.01, -0.02, -0.03, -0.04, -0.05, -0.06, -0.07, -0.08,
@@ -15,6 +17,59 @@ def remove_reward_range():
                     -0.09]
     for_long_distance = [-0.10 - 0.01 * i for i in range(4)]
     return reward_range + for_long_distance
+
+
+class OneBlockReward(gym.Wrapper):
+    def __init__(self, env):
+        super().__init__(env)
+    
+    def step(self, action):
+        obs, reward, done, info = super().step(action)
+        reward = 0
+        modification = obs['grid'] - self.prev_obs['grid']
+        if modification.sum() == 0:
+            return obs, reward, done, info
+        
+        action_type = 2 * (action - 16.5)
+        task_type = 1 if self.env.task.target_grid.sum() > 0 else -1
+        if action_type != task_type:
+            reward += -0.001
+        else:
+            block = obs['grid'] - self.prev_obs['grid']
+            block[np.nonzero(block)] = 1 if block.sum() > 0 else -1
+            target_block = self.env.task.target_grid
+
+            coords1 = np.transpose(np.nonzero(block))[0]
+            coords2 = np.transpose(np.nonzero(target_block))[0]
+            dist = np.linalg.norm(coords1 - coords2)
+            #print(np.nonzero(block))
+            #print(target_block)
+
+            if task_type == 1:
+                reward += strict_reward_range()[int(dist)]
+            else:
+                reward += remove_reward_range()[int(dist)]
+        return obs, reward, done, info
+
+class PutUnderReward(gym.Wrapper):
+    def __init__(self, env):
+        super().__init__(env)
+
+    def step(self, action):
+        obs, reward, done, info = super().step(action)
+        modification = obs['grid'] - self.prev_obs['grid']
+        if modification.sum() > 0:
+            block = obs['grid'] - self.prev_obs['grid']
+            coords = np.transpose(np.nonzero(block))[0]
+
+            x_agent, z_agent, y_agent = obs['agentPos'][:3]
+            x_agent, y_agent = x_agent + 5, y_agent + 5
+            x_agent, y_agent = int(x_agent + 0.5), int(y_agent + 0.5)
+
+            if coords[1] == x_agent and coords[2] == y_agent and (z_agent - coords[0]) >= 0:
+                reward += 0.5
+        return obs, reward, done, info
+
 
 
 class RangetReward(Wrapper):
@@ -38,13 +93,9 @@ class RangetReward(Wrapper):
         return np.sum(info['grid'] != 0)
 
     def check_goal_closeness(self, info=None, broi=None, remove=False):
-        #roi = np.where(self.env.task.target_grid != 0)  # y x z
         roi = np.where(self.env.subtask_generator.prev_task != 0)
-        #print(';;;', self.env.subtask_generator.prev_task)
-        #print(self.env.subtask_generator.prev_task)
         goal = np.mean(roi[1]), np.mean(roi[2]), np.mean(roi[0])
         print('::::::::::::::::::::', goal)
-        #print(self.env.task.target_grid[0])
         if broi is None:
             broi = np.where(info['grid'] != 0)  # y x z
         builds = np.mean(broi[1]), np.mean(broi[2]), np.mean(broi[0])
@@ -64,9 +115,6 @@ def calc_new_blocks(current_grid, last_grid):
     new_blocks = np.where(grid != relief)
     if len(new_blocks[0]) > 1:
         np.set_printoptions(threshold=100000)
-        #print(grid)
-        #print('---------')
-        #print(relief)
         raise Exception(f"""
                Bulded more then one block! Logical error!!
                grid z_x_y- {np.where(current_grid != 0)}
@@ -197,6 +245,6 @@ class Closeness(Wrapper):
 
     def step(self, action):
         obs, reward, done, info = super().step(action)
-        add_reward = self.calc_reward(info)
+        add_reward = self.calc_reward(obs)
         reward += add_reward
         return obs, reward, done, info
