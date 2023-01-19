@@ -4,8 +4,10 @@ import numpy as np
 from gym.spaces import Box
 from sample_factory.algorithms.utils.multi_agent_wrapper import MultiAgentWrapper
 
+import sys
+sys.path.append("./")
 from wrappers.common_wrappers import VisualObservationWrapper, \
-    JumpAfterPlace, Discretization, ColorWrapper, StorePrevObsWrapper, InitWrapper
+    JumpAfterPlace, Discretization, ColorWrapper, StorePrevObsWrapper, InitWrapper, WithoutColors, SingleActiveAction
 from wrappers.loggers import SuccessRateFullFigure, VideoLogger, SuccessRateLogger, CompletedRateLogger
 #from wrappers.multitask import TargetGenerator, SubtaskGenerator
 from wrappers.reward_wrappers import RangetRewardFilledField, Closeness, PutUnderReward, OneBlockReward
@@ -61,6 +63,10 @@ def make_walking_iglu(*args, **kwargs):
     env = CompletedRateLogger(env)
 
     env = VisualObservationWrapper(env)
+
+    env = WithoutColors(env)
+    env = SingleActiveAction(env)
+
     env = EpisodeController(env, tg, sg, tc, sc, wi)
 
     env = MultiAgentWrapper(env)
@@ -70,35 +76,43 @@ def make_walking_iglu(*args, **kwargs):
 def make_flying_iglu(*args, **kwargs):
     from gridworld.env import GridWorld
     from gridworld.tasks.task import Task
-    custom_grid = np.ones((9, 11, 11))
-    env = GridWorld(render=True, select_and_place=True, discretize=True, action_space='flying', max_steps=900, fake=kwargs.get('fake', False))
-    env.set_task(Task("", custom_grid, invariant=False))
-    
+    env = GridWorld(render=True, select_and_place=True, action_space='flying', discretize=True, max_steps=1000, fake=kwargs.get('fake', False))
+    env.set_task(Task("", np.ones((9, 11, 11)), invariant=False))
+
     tg = RandomTargetGenerator(None, 0.01)
-    #sg = FlyingSubtaskGenerator()
-    sg = NavigationSubtaskGenerator()
+    sg = FlyingSubtaskGenerator()
+    #sg = NavigationSubtaskGenerator()
     target = tg.get_target()
     sg.set_new_task(target)
     tc = TrainTaskController()
     sc = TrainSubtaskController()
-    env = EpisodeController(env, tg, sg, tc, sc)
-    #figure_generator = RandomFigure
-    
-    #env = TargetGenerator(env, fig_generator=figure_generator)
-    #env = SubtaskGenerator(env)
-    env = VisualObservationWrapper(env)
-    #env = JumpAfterPlace(env)
+    wi = WorldInitializer()
+
+    env = InitWrapper(env, tg, sg, tc, sc, wi)
 
     env = Discretization(env)
-    #env = ColorWrapper(env)
-    env = RangetRewardFilledField(env)
-    env = Closeness(env)
+    env = WithoutColors(env)
+    env = SingleActiveAction(env)
 
-    env = SuccessRateFullFigure(env)
+    env = StorePrevObsWrapper(env)
+
+    env = OneBlockReward(env)
+    env = Closeness(env)
+#    env = PutUnderReward(env)
+    env = SuccessRateLogger(env)
+    env = CompletedRateLogger(env)
+
+    env = VisualObservationWrapper(env)
+    env = EpisodeController(env, tg, sg, tc, sc, wi)
+
     env = MultiAgentWrapper(env)
     env = AutoResetWrapper(env)
-
     return env
 
 def make_iglu(*args, **kwargs):
-    return make_walking_iglu(*args, **kwargs)
+    return make_flying_iglu(*args, **kwargs)
+
+if __name__ == '__main__':
+    env = make_iglu()
+    env.reset()
+    env.step(10)

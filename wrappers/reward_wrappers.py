@@ -42,8 +42,6 @@ class OneBlockReward(gym.Wrapper):
             coords1 = np.transpose(np.nonzero(block))[0]
             coords2 = np.transpose(np.nonzero(target_block))[0]
             dist = np.linalg.norm(coords1 - coords2)
-            #print(np.nonzero(block))
-            #print(target_block)
 
             if task_type == 1:
                 reward += strict_reward_range()[int(dist)]
@@ -60,14 +58,20 @@ class PutUnderReward(gym.Wrapper):
         modification = obs['grid'] - self.prev_obs['grid']
         if modification.sum() > 0:
             block = obs['grid'] - self.prev_obs['grid']
-            coords = np.transpose(np.nonzero(block))[0]
+            block[np.nonzero(block)] = 1 if block.sum() > 0 else -1
+            target_block = self.env.task.target_grid
+
+            coords1 = np.transpose(np.nonzero(block))[0]
+            coords2 = np.transpose(np.nonzero(target_block))[0]
+            dist = np.linalg.norm(coords1 - coords2)
 
             x_agent, z_agent, y_agent = obs['agentPos'][:3]
             x_agent, y_agent = x_agent + 5, y_agent + 5
             x_agent, y_agent = int(x_agent + 0.5), int(y_agent + 0.5)
 
-            if coords[1] == x_agent and coords[2] == y_agent and (z_agent - coords[0]) >= 0:
-                reward += 0.5
+            if int(dist) == 0:
+                if coords1[1] == x_agent and coords1[2] == y_agent and (z_agent - coords1[0]) >= 0:
+                    reward += 0.5
         return obs, reward, done, info
 
 

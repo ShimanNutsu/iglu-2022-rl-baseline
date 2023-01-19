@@ -120,35 +120,6 @@ def flat_flying(env, camera_delta=5, step_delta = 1):
     
     discretes = [no_op_f()]
     
-    ###### blocks
-    for color in range(0,7):
-        dummy = no_op_f()
-        dummy['inventory'] = color
-        discretes.append(dummy)
-              
-    ###### placement
-    for move in range(0,3):
-        dummy = no_op_f()
-        dummy['placement'] = move
-        discretes.append(dummy)
-                        
-    ###### camera                    
-    camera_x = no_op_f()
-    camera_x['camera'][0] = camera_delta
-    discretes.append(camera_x)
-                        
-    camera_x = no_op_f()
-    camera_x['camera'][0] = -camera_delta
-    discretes.append(camera_x)
-                        
-    camera_y = no_op_f()
-    camera_y['camera'][1] = camera_delta
-    discretes.append(camera_y)
-                        
-    camera_y = no_op_f()
-    camera_y['camera'][1] = -camera_delta
-    discretes.append(camera_y)
-    
     #### movement
     move_x = no_op_f()
     move_x['movement'][0] = step_delta
@@ -169,21 +140,50 @@ def flat_flying(env, camera_delta=5, step_delta = 1):
     move_y = no_op_f()
     move_y['movement'][0] = -step_delta
     discretes.append(move_y)
+    
+    ###### blocks
+    for color in range(1, 7):
+        dummy = no_op_f()
+        dummy['inventory'] = color
+        discretes.append(dummy)
                         
+    ###### camera                    
+    camera_x = no_op_f()
+    camera_x['camera'][0] = camera_delta
+    discretes.append(camera_x)
+                        
+    camera_x = no_op_f()
+    camera_x['camera'][0] = -camera_delta
+    discretes.append(camera_x)
+                        
+    camera_y = no_op_f()
+    camera_y['camera'][1] = camera_delta
+    discretes.append(camera_y)
+                        
+    camera_y = no_op_f()
+    camera_y['camera'][1] = -camera_delta
+    discretes.append(camera_y)
+
+
     move_z = no_op_f()
     move_z['movement'][0] = -step_delta
     discretes.append(move_z)
+              
+
+    ###### placement
+    for move in range(2, 0, -1):
+        dummy = no_op_f()
+        dummy['placement'] = move
+        discretes.append(dummy)
                         
     return discretes
 
- 
 class Discretization(ActionsWrapper):
     def __init__(self, env, flatten = 'flying'):
         super().__init__(env)
         camera_delta = 5
         step_delta = 1
         self.discretes = flat_flying(env, camera_delta, step_delta)
-       # print(self.discretes[2:8])
         self.action_space = gym.spaces.Discrete(len(self.discretes))
         self.old_action_space = env.action_space
         self.last_action = None
@@ -194,6 +194,34 @@ class Discretization(ActionsWrapper):
         elif raw_action is not None:
             action = raw_action
         yield action
+
+class WithoutColors(gym.Wrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        self.num_actions = env.action_space.n - 6
+        self.action_space = gym.spaces.Discrete(self.num_actions)
+
+    def step(self, action):
+        if action > 5:
+            action += 6
+        return super().step(action)
+
+class SingleActiveAction(gym.Wrapper):
+    """
+    Changes action space, so that instead of actions 'put' and 'break' it has single action 'done' with automatic choice of required action
+    """
+    def __init__(self, env):
+        super().__init__(env)
+        self.num_actions = env.action_space.n - 1
+        self.action_space = gym.spaces.Discrete(self.num_actions)
+
+    def step(self, action):
+        if action == self.num_actions - 1:
+            if self.task.target_grid.sum() > 0:
+                action = self.num_actions
+            else:
+                action = self.num_actions - 1
+        return super().step(action)
 
 class InitWrapper(gym.Wrapper):
     def __init__(self, env, target_generator, subtask_generator, task_controller, subtask_controller, world_initializer, max_subtask_step=150):
@@ -209,6 +237,9 @@ class StorePrevObsWrapper(gym.Wrapper):
         super().__init__(env)
         self.prev_obs = None
         self.cur_obs = None
+
+    def set_prev_obs(self, obs):
+        self.cur_obs = obs
     
     def reset(self):
         obs = super().reset()

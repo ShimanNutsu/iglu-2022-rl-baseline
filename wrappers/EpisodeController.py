@@ -339,7 +339,7 @@ class FlyingSubtaskGenerator(SubtaskGenerator):
     def empty(self):
         return self.subtasks.empty()
 
-class NavigationSubtaskGenerator(SubtaskGenerator):
+class ggNavigationSubtaskGenerator(SubtaskGenerator):
     def __init__(self):
         self.subtasks = None
         self.prev_task = None
@@ -413,6 +413,7 @@ class WorldInitializer:
         z = np.random.choice(np.arange(11))
 
         pos = (x - 5, z + 2, y - 5, 0, 0)
+        pos = (0, 0, 0, 0, 0)
 
         start_grid = np.zeros((9, 11, 11))
         
@@ -454,6 +455,7 @@ class EpisodeController(gym.Wrapper):
         self.subtask_generator.set_new_task(self.target)
         start_grid, start_pos = self.world_initializer.init_world(self.target)
         obs['grid'] = start_grid
+        self.env.set_prev_obs(obs)
 
         blocks = np.where(start_grid)
         ind = np.lexsort((blocks[0], blocks[2], blocks[1]))
