@@ -30,7 +30,7 @@ class OneBlockReward(gym.Wrapper):
         if modification.sum() == 0:
             return obs, reward, done, info
         
-        action_type = 2 * (action - 16.5)
+        action_type = 1 if modification.sum() > 0 else -1
         task_type = 1 if self.env.task.target_grid.sum() > 0 else -1
         if action_type != task_type:
             reward += -0.001

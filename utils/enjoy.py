@@ -106,7 +106,7 @@ def main():
     cfg = parse_args(argv=['--algo=APPO', '--env=IGLUSilentBuilder-v0', '--experiment=TreeChopBaseline-iglu',
                            '--experiments_root=./',
                            #'--experiments_root=force_envs_single_thread=False;num_envs_per_worker=1;num_workers=10',
-                           '--train_dir=./train_dir/0022'], evaluation=True)
+                           '--train_dir=./train_dir/0002'], evaluation=True)
     status = enjoy(cfg, 5000)
     return status
 

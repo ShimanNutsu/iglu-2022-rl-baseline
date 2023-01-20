@@ -80,13 +80,12 @@ def make_flying_iglu(*args, **kwargs):
     env.set_task(Task("", np.ones((9, 11, 11)), invariant=False))
 
     tg = RandomTargetGenerator(None, 0.01)
-    sg = FlyingSubtaskGenerator()
-    #sg = NavigationSubtaskGenerator()
+    #sg = FlyingSubtaskGenerator()
+    sg = NavigationSubtaskGenerator()
     target = tg.get_target()
-    sg.set_new_task(target)
     tc = TrainTaskController()
     sc = TrainSubtaskController()
-    wi = WorldInitializer()
+    wi = NavigationWorldInitializer()
 
     env = InitWrapper(env, tg, sg, tc, sc, wi)
 
@@ -98,7 +97,6 @@ def make_flying_iglu(*args, **kwargs):
 
     env = OneBlockReward(env)
     env = Closeness(env)
-#    env = PutUnderReward(env)
     env = SuccessRateLogger(env)
     env = CompletedRateLogger(env)
 

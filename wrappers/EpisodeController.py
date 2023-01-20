@@ -19,7 +19,6 @@ class Q():
     def empty(self):
         if self.queue:
             return True
-        print('-')
         return False
 
 import matplotlib.pyplot as plt
@@ -45,7 +44,7 @@ class TargetGenerator:
     def get_target(self):
         raise NotImplementedError("Using virtual class " + str(self.__class__.__name__))
 
-def plot_grid(voxel, text=None, file=None):
+def plot_grid(voxel, text=None, filename=None):
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
 
@@ -69,10 +68,10 @@ def plot_grid(voxel, text=None, file=None):
     ax.set_zticks(np.arange(0, 9, 1), minor=True)
     if text is not None:
         plt.annotate(text, (0, 0), (0, -20), xycoords='axes fraction', textcoords='offset points', va='top')
-    if file is None:
+    if filename is None:
         plt.show()
     else:
-        plt.savefig(file)
+        plt.savefig(filename)
 
 class RandomTargetGenerator(TargetGenerator):
     def __init__(self, config, p):
@@ -109,22 +108,22 @@ class RandomTargetGenerator(TargetGenerator):
         #self.grid[0][x][y] = 1
         #self.grid[8][10][10] = 1
 
-        #r = np.random.normal(5.5, 1, (10, 2))
-        #r = r.astype(int)
-        #r[r < 0] = 0
-        #r[r > 10] = 10
-        #r = np.unique(r, axis=0)
-
-        #self.grid = np.zeros((9, 11, 11))
-        #for idx in r:
-        #    for h in range(4):
-        #        self.grid[h, idx[0], idx[1]] = np.random.choice([0, 1], p=[0.5, 0.5])
+        r = np.random.normal(5.5, 1, (10, 2))
+        r = r.astype(int)
+        r[r < 0] = 0
+        r[r > 10] = 10
+        r = np.unique(r, axis=0)
 
         self.grid = np.zeros((9, 11, 11))
-        x = np.random.choice(np.arange(11))
-        y = np.random.choice(np.arange(11))
+        for idx in r:
+            for h in range(4):
+                self.grid[h, idx[0], idx[1]] = np.random.choice([0, 1], p=[0.7, 0.3])
+
+        #self.grid = np.zeros((9, 11, 11))
+        #x = np.random.choice(np.arange(11))
+        #y = np.random.choice(np.arange(11))
         #z = np.random.choice(np.arange(1, 4))
-        self.grid[0, x, y] = 1
+        #self.grid[0, x, y] = 1
 
 
         return self.grid
@@ -177,7 +176,7 @@ class SubtaskGenerator():
     def __init__(self) -> None:
         pass
 
-    def set_new_task(self, target):
+    def set_new_task(self, target, start_grid):
         pass
 
     def get_next_subtask(self):
@@ -403,33 +402,125 @@ class ggNavigationSubtaskGenerator(SubtaskGenerator):
     def empty(self):
         return self.subtasks.empty()
 
-class WorldInitializer:
+class NavigationWorldInitializer:
     def __init__(self):
+        self.put_prob = 0.5
         pass
 
     def init_world(self, target):
+        start_grid = np.zeros((9, 11, 11))
+
+        blocks = np.transpose(np.nonzero(target))
+        n = blocks.shape[0]
+
+        subtask = np.random.choice(np.arange(n))
+        subtask = blocks[subtask]
+
+        for x in range(subtask[1]):
+            for y in range(11):
+                for z in range(9):
+                    start_grid[z, x, y] = target[z, x, y]
+        x = subtask[1]
+        for y in range(subtask[2]):
+            for z in range(9):
+                start_grid[z, x, y] = target[z, x, y]
+        y = subtask[2]
+        for z in range(subtask[0]):
+            start_grid[z, x, y] = target[z, x, y]
+        
+        p = self.put_prob
+        if np.random.choice([1, 0], p=[p, 1-p]):
+            if not self._has_adj(subtask, start_grid):
+                for z in range(subtask[0]):
+                    start_grid[z, x, y] = 1
+        
+            new_target = start_grid.copy()
+            new_target[subtask[0], x, y] = target[subtask[0], x, y]
+        else:
+            h = np.random.choice(np.arange(1, 8))
+            for z in range(h):
+                start_grid[z, x, y] = 1
+            
+            for_del = np.random.choice(np.arange(h))
+
+            new_target = start_grid.copy()
+            new_target[for_del, x, y] = 0
+
         x = np.random.choice(np.arange(11))
         y = np.random.choice(np.arange(11))
-        z = np.random.choice(np.arange(11))
+        z = np.random.choice(np.arange(8))
+
+        while start_grid[z, x, y] != 0 and start_grid[z + 1, x, y] != 0:
+            x = np.random.choice(np.arange(11))
+            y = np.random.choice(np.arange(11))
+            z = np.random.choice(np.arange(6))
 
         pos = (x - 5, z + 2, y - 5, 0, 0)
-        pos = (0, 0, 0, 0, 0)
 
-        start_grid = np.zeros((9, 11, 11))
-        
-        return start_grid, pos
+        return start_grid, pos, new_target
 
+    def visualize(self, target, filename):
+        start_grid, pos, target = self.init_world(target)
+
+        start_grid[np.nonzero(start_grid)] = 6
+        target[np.nonzero(target)] = 6
+
+        subtask_grid = target - start_grid
+        subtask = tuple(np.transpose(np.nonzero(subtask_grid))[0].tolist())
+        x, z, y, _, _ = pos
+        x += 5
+        y += 5
+        z -= 2
+        if (z, x, y) == subtask:
+            start_grid[z, x, y] = 3
+        else:
+            if subtask_grid.sum() > 0:
+                start_grid[subtask] = 4
+            else:
+                start_grid[subtask] = 1
+            start_grid[z, x, y] = 2
+
+        plot_grid(start_grid, filename=filename)
+
+    
+    def _has_adj(self, subtask, grid):
+        if subtask[0] == 0:
+            return True
+        neibs = [[-1, 0, 0],
+        [0, -1, 0],
+        [0, 0, -1]]
+
+        for dv in neibs:
+            neib = subtask + dv
+            if (neib >= 0).all() and (neib[1:] < 11).all() and neib[0] < 9:
+                if grid[tuple(neib)] != 0:
+                    return True
+        return False
+
+class NavigationSubtaskGenerator(SubtaskGenerator):
+    def __init__(self):
+        self.subtasks = None
+
+    def set_new_task(self, target, start_grid):
+        subtask_grid = target - start_grid
+        subtask_grid[subtask_grid < 0] = 1
+        subtask = np.transpose(np.nonzero(subtask_grid))[0].tolist()
+        self.subtasks = Queue()
+        self.subtasks.put(tuple(subtask + [subtask_grid[tuple(subtask)]]))
+
+    def get_next_subtask(self):
+        target = self.subtasks.get()
+        grid = np.zeros((9, 11, 11))
+        grid[target[0], target[1], target[2]] = target[3]
+        return grid
 
 #---------------------------------------------
 
 if __name__ == '__main__':
-    gr = RandomTargetGenerator(None, 0.01)
-    a = gr.get_target(None)
-    st = NavigationSubtaskGenerator()
-    st.set_new_task(a)
-    print(np.transpose(np.where(a)))
-    while not st.empty():
-        print(np.where(st.get_next_subtask()))
+    a = NavigationWorldInitializer()
+    for i in range(10):
+        t = RandomTargetGenerator(None, None).get_target()
+        a.visualize(t, 'nav/nav' + str(i) + '.png')
 
 
 class EpisodeController(gym.Wrapper):
@@ -452,8 +543,11 @@ class EpisodeController(gym.Wrapper):
         self.subtask_step = 0
         self.steps = 0
         self.target = self.target_generator.get_target()
-        self.subtask_generator.set_new_task(self.target)
-        start_grid, start_pos = self.world_initializer.init_world(self.target)
+        start_grid, start_pos, new_target = self.world_initializer.init_world(self.target)
+        if not new_target is None:
+            self.target = new_target
+        self.subtask_generator.set_new_task(self.target, start_grid)
+
         obs['grid'] = start_grid
         self.env.set_prev_obs(obs)
 
@@ -476,10 +570,8 @@ class EpisodeController(gym.Wrapper):
 
         task = self.env.task.target_grid
         if self.task_controller.finished(obs, self.prev_obs, task) or self.subtask_step > self.max_subtask_step:
-            print(1)
             done = True
         elif self.subtask_controller.finished(obs, self.prev_obs, task):
-            print(2)
             subtask = self.subtask_generator.get_next_subtask()
             if subtask is None:
                 done = True

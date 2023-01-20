@@ -126,11 +126,11 @@ def flat_flying(env, camera_delta=5, step_delta = 1):
     discretes.append(move_x)
                         
     move_y = no_op_f()
-    move_y['movement'][0] = step_delta
+    move_y['movement'][1] = step_delta
     discretes.append(move_y)
                         
     move_z = no_op_f()
-    move_z['movement'][0] = step_delta
+    move_z['movement'][2] = step_delta
     discretes.append(move_z)
                         
     move_x = no_op_f()
@@ -138,8 +138,13 @@ def flat_flying(env, camera_delta=5, step_delta = 1):
     discretes.append(move_x)
                         
     move_y = no_op_f()
-    move_y['movement'][0] = -step_delta
+    move_y['movement'][1] = -step_delta
     discretes.append(move_y)
+
+
+    move_z = no_op_f()
+    move_z['movement'][2] = -step_delta
+    discretes.append(move_z)
     
     ###### blocks
     for color in range(1, 7):
@@ -163,11 +168,6 @@ def flat_flying(env, camera_delta=5, step_delta = 1):
     camera_y = no_op_f()
     camera_y['camera'][1] = -camera_delta
     discretes.append(camera_y)
-
-
-    move_z = no_op_f()
-    move_z['movement'][0] = -step_delta
-    discretes.append(move_z)
               
 
     ###### placement

@@ -31,7 +31,7 @@ class SuccessRateLogger(gym.Wrapper):
         modification = obs['grid'] - self.prev_obs['grid']
         if modification.sum() != 0:
             self.subtask_counter += 1
-            action_type = int(2 * (action - 16.5))
+            action_type = 1 if modification.sum() > 0 else -1
             task_type = 1 if self.env.task.target_grid.sum() > 0 else -1
             if action_type == task_type:
                 block = obs['grid'] - self.prev_obs['grid']
