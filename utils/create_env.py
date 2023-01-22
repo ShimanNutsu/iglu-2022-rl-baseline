@@ -7,7 +7,7 @@ from sample_factory.algorithms.utils.multi_agent_wrapper import MultiAgentWrappe
 import sys
 sys.path.append("./")
 from wrappers.common_wrappers import VisualObservationWrapper, \
-    JumpAfterPlace, Discretization, ColorWrapper, StorePrevObsWrapper, InitWrapper, WithoutColors, SingleActiveAction
+    JumpAfterPlace, Discretization, ColorWrapper, StorePrevObsWrapper, InitVarsWrapper, WithoutColors, SingleActiveAction
 from wrappers.loggers import SuccessRateFullFigure, VideoLogger, SuccessRateLogger, CompletedRateLogger
 #from wrappers.multitask import TargetGenerator, SubtaskGenerator
 from wrappers.reward_wrappers import RangetRewardFilledField, Closeness, PutUnderReward, OneBlockReward
@@ -87,7 +87,7 @@ def make_flying_iglu(*args, **kwargs):
     sc = TrainSubtaskController()
     wi = NavigationWorldInitializer()
 
-    env = InitWrapper(env, tg, sg, tc, sc, wi)
+    env = InitVarsWrapper(env, tg, sg, tc, sc, wi)
 
     env = Discretization(env)
     env = WithoutColors(env)

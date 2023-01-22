@@ -216,14 +216,20 @@ class SingleActiveAction(gym.Wrapper):
         self.action_space = gym.spaces.Discrete(self.num_actions)
 
     def step(self, action):
+        done_ = False
         if action == self.num_actions - 1:
             if self.task.target_grid.sum() > 0:
                 action = self.num_actions
             else:
                 action = self.num_actions - 1
-        return super().step(action)
+            done_ = True
+        obs, reward, done, info = super().step(action)
+        if done_:
+            return obs, reward, done_, info
+        else:
+            return obs, reward, done, info
 
-class InitWrapper(gym.Wrapper):
+class InitVarsWrapper(gym.Wrapper):
     def __init__(self, env, target_generator, subtask_generator, task_controller, subtask_controller, world_initializer, max_subtask_step=150):
         super().__init__(env)
         self.target_generator = target_generator
