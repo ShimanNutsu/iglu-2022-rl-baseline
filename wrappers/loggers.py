@@ -32,19 +32,22 @@ class SuccessRateLogger(gym.Wrapper):
         if modification.sum() != 0:
             self.subtask_counter += 1
             action_type = 1 if modification.sum() > 0 else -1
-            task_type = 1 if self.env.task.target_grid.sum() > 0 else -1
+            task_type = 1 if self.env.prev_task.target_grid.sum() > 0 else -1
             if action_type == task_type:
                 block = obs['grid'] - self.prev_obs['grid']
                 block[np.nonzero(block)] = 1 if block.sum() > 0 else -1
-                target_block = self.env.task.target_grid
+                target_block = self.env.prev_task.target_grid
 
                 coords1 = np.transpose(np.nonzero(block))
                 coords2 = np.transpose(np.nonzero(target_block))
 
                 if (coords1 == coords2).all():
                     self.SR += 1
-            if self.task_controller.finished(obs, self.prev_obs, self.env.task.target_grid) or self.subtask_generator.empty():
-                info['episode_extra_stats'] = info.get('episode_extra_stats', {})
+        if done:
+            info['episode_extra_stats'] = info.get('episode_extra_stats', {})
+            if self.subtask_counter == 0:
+                info['episode_extra_stats']['SuccessRate'] = 0
+            else:
                 info['episode_extra_stats']['SuccessRate'] = self.SR / self.subtask_counter
         return obs, reward, done, info
 

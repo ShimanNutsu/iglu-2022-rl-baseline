@@ -508,7 +508,7 @@ class NavigationSubtaskGenerator(SubtaskGenerator):
 
     def set_new_task(self, target, start_grid):
         subtask_grid = target - start_grid
-        subtask_grid[subtask_grid < 0] = 1
+        subtask_grid[subtask_grid < 0] = -1
         subtask = np.transpose(np.nonzero(subtask_grid))[0].tolist()
         self.subtasks = Queue()
         self.subtasks.put(tuple(subtask + [subtask_grid[tuple(subtask)]]))
@@ -567,6 +567,7 @@ class EpisodeController(gym.Wrapper):
         self.env.initialize_world(starting_grid, start_pos)
         subtask = self.subtask_generator.get_next_subtask()
         self.env.set_task(Task("", subtask, invariant=False))
+        self.prev_task = self.env.task
         return obs
 
     def step(self, action):
