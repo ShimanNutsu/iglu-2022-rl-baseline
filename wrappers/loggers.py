@@ -62,14 +62,13 @@ class CompletedRateLogger(gym.Wrapper):
 
     def step(self, action):
         obs, reward, done, info = super().step(action)
-        modification = obs['grid'] - self.prev_obs['grid']
-        if modification.sum() != 0:
-            if self.task_controller.finished(obs, self.prev_obs, self.env.task.target_grid):
-                info['episode_extra_stats'] = info.get('episode_extra_stats', {})
-                info['episode_extra_stats']['CompletedRate'] = 0
-            elif self.subtask_generator.empty():
+        if done:
+            if self.env.subtask_controller.finished(obs, self.prev_obs, None) and self.env.subtask_generator.subtasks.empty():
                 info['episode_extra_stats'] = info.get('episode_extra_stats', {})
                 info['episode_extra_stats']['CompletedRate'] = 1
+            else:
+                info['episode_extra_stats'] = info.get('episode_extra_stats', {})
+                info['episode_extra_stats']['CompletedRate'] = 0
         return obs, reward, done, info
 
 class VideoLogger(Wrapper):

@@ -119,6 +119,11 @@ class RandomTargetGenerator(TargetGenerator):
             for h in range(4):
                 self.grid[h, idx[0], idx[1]] = np.random.choice([0, 1], p=[0.7, 0.3])
 
+        if self.grid.sum() == 0:
+            x = np.random.choice(np.arange(0, 10))
+            y = np.random.choice(np.arange(0, 10))
+            self.grid[0][x][y] = 1
+
         #self.grid = np.zeros((9, 11, 11))
         #x = np.random.choice(np.arange(11))
         #y = np.random.choice(np.arange(11))
@@ -509,6 +514,8 @@ class NavigationSubtaskGenerator(SubtaskGenerator):
         self.subtasks.put(tuple(subtask + [subtask_grid[tuple(subtask)]]))
 
     def get_next_subtask(self):
+        if self.subtasks.empty():
+            return None
         target = self.subtasks.get()
         grid = np.zeros((9, 11, 11))
         grid[target[0], target[1], target[2]] = target[3]

@@ -98,10 +98,11 @@ def make_flying_iglu(*args, **kwargs):
     env = OneBlockReward(env)
     env = Closeness(env)
     env = SuccessRateLogger(env)
-    env = CompletedRateLogger(env)
 
     env = VisualObservationWrapper(env)
     env = EpisodeController(env, tg, sg, tc, sc, wi)
+
+    env = CompletedRateLogger(env)
 
     env = MultiAgentWrapper(env)
     env = AutoResetWrapper(env)
