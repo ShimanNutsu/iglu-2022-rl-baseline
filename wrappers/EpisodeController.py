@@ -460,7 +460,7 @@ class NavigationWorldInitializer:
             y = np.random.choice(np.arange(11))
             z = np.random.choice(np.arange(6))
 
-        pos = (x - 5, y - 5, z - 1, 0, 0)
+        pos = (x - 5, z, y - 5, 0, 0)
 
         return start_grid, pos, new_target
 
@@ -475,7 +475,6 @@ class NavigationWorldInitializer:
         x, y, z, _, _ = pos
         x += 5
         y += 5
-        z += 1
         if (z, x, y) == subtask:
             start_grid[z, x, y] = 3
         else:
