@@ -453,14 +453,16 @@ class NavigationWorldInitializer:
 
         x = np.random.choice(np.arange(11))
         y = np.random.choice(np.arange(11))
-        z = np.random.choice(np.arange(8))
+        z = np.random.choice(np.arange(6))
+        yaw = np.random.choice(np.arange(-90, 90, 5))
+        pitch = np.random.choice(np.arange(-90, 90, 5))
 
         while start_grid[z, x, y] != 0 and start_grid[z + 1, x, y] != 0:
             x = np.random.choice(np.arange(11))
             y = np.random.choice(np.arange(11))
             z = np.random.choice(np.arange(6))
 
-        pos = (x - 5, z, y - 5, 0, 0)
+        pos = (x - 5, z, y - 5, yaw, pitch)
 
         return start_grid, pos, new_target
 
@@ -472,7 +474,7 @@ class NavigationWorldInitializer:
 
         subtask_grid = target - start_grid
         subtask = tuple(np.transpose(np.nonzero(subtask_grid))[0].tolist())
-        x, y, z, _, _ = pos
+        x, z, y, _, _ = pos
         x += 5
         y += 5
         if (z, x, y) == subtask:
