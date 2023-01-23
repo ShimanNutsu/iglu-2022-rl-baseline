@@ -460,7 +460,7 @@ class NavigationWorldInitializer:
             y = np.random.choice(np.arange(11))
             z = np.random.choice(np.arange(6))
 
-        pos = (x - 5, z + 2, y - 5, 0, 0)
+        pos = (x - 5, y - 5, z - 1, 0, 0)
 
         return start_grid, pos, new_target
 
@@ -472,10 +472,10 @@ class NavigationWorldInitializer:
 
         subtask_grid = target - start_grid
         subtask = tuple(np.transpose(np.nonzero(subtask_grid))[0].tolist())
-        x, z, y, _, _ = pos
+        x, y, z, _, _ = pos
         x += 5
         y += 5
-        z -= 2
+        z += 1
         if (z, x, y) == subtask:
             start_grid[z, x, y] = 3
         else:
@@ -578,6 +578,8 @@ class EpisodeController(gym.Wrapper):
 
         task = self.env.task.target_grid
         if self.task_controller.finished(obs, self.prev_obs, task) or self.subtask_step > self.max_subtask_step:
+            if self.subtask_step > self.max_subtask_step:
+                reward -= 1.0
             done = True
         elif self.subtask_controller.finished(obs, self.prev_obs, task):
             subtask = self.subtask_generator.get_next_subtask()
