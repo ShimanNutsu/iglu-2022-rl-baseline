@@ -222,7 +222,7 @@ class SingleActiveAction(gym.Wrapper):
                 action = self.num_actions
             else:
                 action = self.num_actions - 1
-            done_ = True
+            #done_ = True
         obs, reward, done, info = super().step(action)
         if done_:
             return obs, reward, done_, info
@@ -237,6 +237,17 @@ class InitVarsWrapper(gym.Wrapper):
         self.task_controller = task_controller
         self.subtask_controller = subtask_controller
         self.world_initializer = world_initializer
+        self.task = None
+
+    def set_subtask(self, task):
+        self.task = task
+    
+    def step(self, action):
+        obs, reward, done, info = super().step(action)
+        done = False
+        if done:
+            print('00000000000000000000000000000000')
+        return obs, reward, done, info
 
 class StorePrevObsWrapper(gym.Wrapper):
     def __init__(self, env):

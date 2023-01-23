@@ -567,7 +567,8 @@ class EpisodeController(gym.Wrapper):
 
         self.env.initialize_world(starting_grid, start_pos)
         subtask = self.subtask_generator.get_next_subtask()
-        self.env.set_task(Task("", subtask, invariant=False))
+        self.env.set_task(Task("", self.target, invariant=False))
+        self.env.set_subtask(Task("", subtask, invariant=False))
         self.prev_task = self.env.task
         return obs
 
@@ -583,12 +584,21 @@ class EpisodeController(gym.Wrapper):
             if self.subtask_step > self.max_subtask_step:
                 reward -= 1.0
             done = True
+            print(1, '{{{{{{{{{{{{')
+            print(self.prev_obs['grid'].nonzero())
+            print(obs['grid'].nonzero())
+            print(task.nonzero())
         elif self.subtask_controller.finished(obs, self.prev_obs, task):
             subtask = self.subtask_generator.get_next_subtask()
             if subtask is None:
+                print(2, '{{{{{{{{{{{{{{{{{{')
                 done = True
             else:
-                self.env.set_task(Task("", subtask, invariant=False))
+                print('----------33333333333333333333333')
+                #self.env.set_task(Task("", subtask, invariant=False))
+                self.env.set_subtask(Task("", subtask, invariant=False))
             self.subtask_step = 0
+        if done:
+            print('(((((((((((((((((')
 
         return obs, reward, done, info

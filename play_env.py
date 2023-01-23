@@ -9,6 +9,15 @@ from wrappers.EpisodeController import *
 
 import readchar
 
+class WI():
+    def __init__(self):
+        pass
+
+    def init_world(self, target):
+        start_grid = np.zeros((9, 11, 11))
+        pos = (0, 3, 0, 0, 0)
+        return start_grid, pos, target
+
 def make_flying_iglu(*args, **kwargs):
     from gridworld.env import GridWorld
     from gridworld.tasks.task import Task
@@ -16,12 +25,13 @@ def make_flying_iglu(*args, **kwargs):
     env.set_task(Task("", np.ones((9, 11, 11)), invariant=False))
 
     tg = RandomTargetGenerator(None, 0.01)
-    #sg = FlyingSubtaskGenerator()
-    sg = NavigationSubtaskGenerator()
+    sg = FlyingSubtaskGenerator()
+    #sg = NavigationSubtaskGenerator()
     target = tg.get_target()
     tc = TrainTaskController()
     sc = TrainSubtaskController()
-    wi = NavigationWorldInitializer()
+    #wi = NavigationWorldInitializer()
+    wi = WI()
 
     env = InitVarsWrapper(env, tg, sg, tc, sc, wi)
 
