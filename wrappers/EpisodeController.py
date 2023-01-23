@@ -454,8 +454,8 @@ class NavigationWorldInitializer:
         x = np.random.choice(np.arange(11))
         y = np.random.choice(np.arange(11))
         z = np.random.choice(np.arange(6))
-        yaw = np.random.choice(np.arange(-90, 90, 5))
-        pitch = np.random.choice(np.arange(-90, 90, 5))
+        yaw = np.random.choice(np.arange(-175, 175, 5))
+        pitch = np.random.choice(np.arange(-90, 25, 5))
 
         while start_grid[z, x, y] != 0 and start_grid[z + 1, x, y] != 0:
             x = np.random.choice(np.arange(11))
