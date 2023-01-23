@@ -298,7 +298,7 @@ class FlyingSubtaskGenerator(SubtaskGenerator):
         self.prev_task = None
         pass
 
-    def set_new_task(self, target_grid):
+    def set_new_task(self, target_grid, start_grid):
         self.subtasks = Queue()
         where = np.nonzero(np.sum(target_grid, axis=0))
         for i in range(len(where[0])):
@@ -572,6 +572,7 @@ class EpisodeController(gym.Wrapper):
         return obs
 
     def step(self, action):
+        print(action)
         obs, reward, done, info = super().step(action)
 
         self.steps += 1
