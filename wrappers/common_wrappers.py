@@ -206,7 +206,7 @@ class WithoutColors(gym.Wrapper):
     def step(self, action):
         if action == self.num_actions - 1:
             color = self.subtask.target_grid.sum()
-            obs, reward, done, info = super().step(color + 6)
+            obs, reward, done, info = super().step(int(color + 5))
             if done:
                 return obs, reward, done, info
         if action > 5:
@@ -229,7 +229,7 @@ class SingleActiveAction(gym.Wrapper):
                 action = self.num_actions
             else:
                 action = self.num_actions - 1
-            #done_ = True
+            done_ = True
         obs, reward, done, info = super().step(action)
         if done_:
             return obs, reward, done_, info

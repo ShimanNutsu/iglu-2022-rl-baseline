@@ -29,18 +29,22 @@ class SuccessRateLogger(gym.Wrapper):
     def step(self, action):
         obs, reward, done, info = super().step(action)
         modification = obs['grid'] - self.prev_obs['grid']
+        print(1111111111111111111111111111111111)
         if modification.sum() != 0:
+            print(22222222222222222222222222222222222222222222)
             self.subtask_counter += 1
             action_type = 1 if modification.sum() > 0 else -1
             task_type = 1 if self.env.prev_task.target_grid.sum() > 0 else -1
             if action_type == task_type:
+                print(333333333333333333333333333333333)
                 block = obs['grid'] - self.prev_obs['grid']
                 block[np.nonzero(block)] = 1 if block.sum() > 0 else -1
                 target_block = self.env.prev_task.target_grid
 
-                coords1 = np.transpose(np.nonzero(block))
-                coords2 = np.transpose(np.nonzero(target_block))
+                coords1 = np.transpose(np.nonzero(block))[0]
+                coords2 = np.transpose(np.nonzero(target_block))[0]
 
+                print(coords1, coords2)
                 if (coords1 == coords2).all():
                     self.SR += 1
         if done:

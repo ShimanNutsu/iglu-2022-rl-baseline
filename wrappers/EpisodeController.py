@@ -433,7 +433,7 @@ class NavigationWorldInitializer:
         blocks = np.transpose(np.nonzero(target))
         n = blocks.shape[0]
 
-        subtask = np.random.choice(np.arange(3))
+        subtask = np.random.choice(np.arange(n))
         subtask = blocks[subtask]
 
         for x in range(subtask[1]):
@@ -577,7 +577,9 @@ class EpisodeController(gym.Wrapper):
         blocks = np.where(start_grid)
         ind = np.lexsort((blocks[0], blocks[2], blocks[1]))
         Zorig, Xorig, Yorig = blocks[0][ind] - 1, blocks[1][ind] - 5, blocks[2][ind] - 5
-        ids = [1] * len(Zorig)
+        ids = []
+        for i in range(len(Zorig)):
+            ids.append(int(start_grid[Zorig[i] + 1, Xorig[i] + 5, Yorig[i] + 5]))
         starting_grid = list(zip(Xorig, Zorig, Yorig, ids))
 
         self.env.initialize_world(starting_grid, start_pos)
