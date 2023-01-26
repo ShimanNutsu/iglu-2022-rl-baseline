@@ -10,12 +10,9 @@ from sample_factory.envs.env_registry import global_env_registry
 
 sys.path.append("./")
 from models.models import ResnetEncoderWithTarget
-from wrappers.common_wrappers import VisualObservationWrapper, \
-    ColorWrapper, JumpAfterPlace, Discretization
-from wrappers.loggers import VideoLogger, Logger, \
-                    SuccessRateFullFigure#, StatisticsLogger, Statistics, R1_score
-#from wrappers.multitask import SubtaskGenerator, TargetGenerator
-from wrappers.reward_wrappers import RangetRewardFilledField, Closeness
+from wrappers.common_wrappers import *
+from wrappers.loggers import *
+from wrappers.reward_wrappers import *
 from wrappers.EpisodeController import *
 
 from utils.create_env import make_iglu
@@ -54,47 +51,71 @@ def castom_tasks():
     tasks['[0:3, 8:10, 8:10]'] = t5
     return tasks
     
+class CustomTarget(TargetGenerator):
+    def get_target(self):
+        grid = np.zeros((9, 11, 11))
+        for i in range(4):
+            grid[i, 3, 4] = 1
+        grid[1, 3, 4] = 0
+        for i in range(2):
+            grid[i, 5, 5] = 1
+        grid[0, 4, 7] = 1
+        grid[2, 7, 6] = 1
+        grid[0, 6, 6] = 1
+        return grid
+
+class WI():
+    def __init__(self):
+        pass
+
+    def init_world(self, target):
+        start_grid = np.zeros((9, 11, 11))
+        pos = (0, 3, 0, 0, 0)
+        return start_grid, pos, target
+
 def makhe_iglu(*args, **kwargs):
     from gridworld.env import GridWorld
     from gridworld.tasks.task import Task
-    custom_grid = np.ones((9, 11, 11))
-    #env = GridWorld(render=True, select_and_place=True, discretize=True, action_space='flying', max_steps=1000,   fake=kwargs.get('fake', False))
-    #env = GridWorld(render=True, select_and_place=True, discretize=True, max_steps=1000,   fake=kwargs.get('fake', False))
-    env = GridWorld(render=True, select_and_place=True, discretize=True, max_steps=150,   fake=kwargs.get('fake', False))
-    env.set_task(Task("", custom_grid, invariant=False))
-    
+    env = GridWorld(render=True, select_and_place=True, action_space='flying', discretize=True, max_steps=1000, fake=kwargs.get('fake', False))
+    env.set_task(Task("", np.ones((9, 11, 11)), invariant=False))
+
     tg = RandomTargetGenerator(None, 0.01)
-    #sg = WalkingSubtaskGenerator()
+    #tg = CustomTarget(0.01)
+    #sg = FlyingSubtaskGenerator()
     sg = NavigationSubtaskGenerator()
-    target = tg.get_target(None)
-    sg.set_new_task(target)
+    target = tg.get_target()
     tc = TrainTaskController()
     sc = TrainSubtaskController()
-    env = EpisodeController(env, tg, sg, tc, sc)
-    #figure_generator = RandomFigure
-    
-    #env = TargetGenerator(env, fig_generator=figure_generator)
-    #env = SubtaskGenerator(env)
-    env = JumpAfterPlace(env)
-    env = VisualObservationWrapper(env)
+    wi = NavigationWorldInitializer()
+    #wi = WI()
 
-    #env = Discretization(env)
-    #env = ColorWrapper(env)
-    env = RangetRewardFilledField(env)
+    env = InitVarsWrapper(env, tg, sg, tc, sc, wi)
+
+    env = Discretization(env)
+    env = WithoutColors(env)
+    env = SingleActiveAction(env)
+
+    env = StorePrevObsWrapper(env)
+
+    env = OneBlockReward(env)
     env = Closeness(env)
 
-    env = SuccessRateFullFigure(env)
+    env = VisualObservationWrapper(env)
+    env = EpisodeController(env, tg, sg, tc, sc, wi)
+    #env = SuccessRateLogger(env)
+
+    #env = CompletedRateLogger(env)
+
     env = VideoLogger(env)
     #env = MultiAgentWrapper(env)
     #env = AutoResetWrapper(env)
-
     return env
 
 
 def register_custom_components():
     global_env_registry().register_env(
         env_name_prefix='IGLUSilentBuilder-v0',
-        make_env_func=make_iglu,
+        make_env_func=makhe_iglu,
     )
     register_custom_encoder('custom_env_encoder', ResnetEncoderWithTarget)
 
@@ -106,7 +127,7 @@ def main():
     cfg = parse_args(argv=['--algo=APPO', '--env=IGLUSilentBuilder-v0', '--experiment=TreeChopBaseline-iglu',
                            '--experiments_root=./',
                            #'--experiments_root=force_envs_single_thread=False;num_envs_per_worker=1;num_workers=10',
-                           '--train_dir=./train_dir/0002'], evaluation=True)
+                           '--train_dir=./train_dir/nav_from_high'], evaluation=True)
     status = enjoy(cfg, 5000)
     return status
 

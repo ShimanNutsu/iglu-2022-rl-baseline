@@ -204,11 +204,11 @@ class WithoutColors(gym.Wrapper):
         self.action_space = gym.spaces.Discrete(self.num_actions)
 
     def step(self, action):
-        if action == self.num_actions - 1:
-            color = self.subtask.target_grid.sum()
-            obs, reward, done, info = super().step(int(color + 5))
-            if done:
-                return obs, reward, done, info
+        #if action == self.num_actions - 1 and False:
+        #    color = self.subtask.target_grid.sum()
+        #    obs, reward, done, info = super().step(int(color + 5))
+        #    if done:
+        #        return obs, reward, done, info
         if action > 5:
             action += 6
         return super().step(action)
@@ -229,7 +229,7 @@ class SingleActiveAction(gym.Wrapper):
                 action = self.num_actions
             else:
                 action = self.num_actions - 1
-            done_ = True
+            #done_ = True
         obs, reward, done, info = super().step(action)
         if done_:
             return obs, reward, done_, info
@@ -356,6 +356,7 @@ class VisualObservationWrapper(ObsWrapper):
                 target_grid = self.env.subtask.target_grid
         else:
             target_grid = self.env.subtask.target_grid
+        target_grid[target_grid > 0] = 1.
 
         if 'pov' in self.env.observation_space.keys():
             return {

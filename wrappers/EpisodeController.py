@@ -130,7 +130,7 @@ class RandomTargetGenerator(TargetGenerator):
         if self.grid.sum() == 0:
             x = np.random.choice(np.arange(0, 10))
             y = np.random.choice(np.arange(0, 10))
-            self.grid[0][x][y] = np.random.choice(np.arange(1, 7))
+            self.grid[0][x][y] = 1#np.random.choice(np.arange(1, 7))
 
         #self.grid = np.zeros((9, 11, 11))
         #x = np.random.choice(np.arange(11))
@@ -547,7 +547,7 @@ if __name__ == '__main__':
 
 
 class EpisodeController(gym.Wrapper):
-    def __init__(self, env, target_generator, subtask_generator, task_controller, subtask_controller, world_initializer, max_subtask_step=500):
+    def __init__(self, env, target_generator, subtask_generator, task_controller, subtask_controller, world_initializer, max_subtask_step=150):
         super().__init__(env)
         self.target_generator = target_generator
         self.subtask_generator = subtask_generator
