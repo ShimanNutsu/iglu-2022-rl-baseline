@@ -44,7 +44,7 @@ class TargetGenerator:
     def get_target(self):
         raise NotImplementedError("Using virtual class " + str(self.__class__.__name__))
 
-def plot_grid(voxel, text=None, filename=None):
+def plot_grid(voxel, text=None, filename=None, ax=None):
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
 
@@ -108,6 +108,8 @@ class RandomTargetGenerator(TargetGenerator):
         #self.grid[0][x][y] = 1
         #self.grid[8][10][10] = 1
 
+        last_color = np.random.choice(np.arange(1, 7))
+
         r = np.random.normal(5.5, 1, (10, 2))
         r = r.astype(int)
         r[r < 0] = 0
@@ -117,12 +119,18 @@ class RandomTargetGenerator(TargetGenerator):
         self.grid = np.zeros((9, 11, 11))
         for idx in r:
             for h in range(4):
-                self.grid[h, idx[0], idx[1]] = np.random.choice([0, 1], p=[0.7, 0.3])
+                put = np.random.choice([0, 1], p=[0.7, 0.3])
+                if put:
+                    colors_prob = [1/10] * 6
+                    colors_prob[last_color - 1] = 1/2
+                    color = np.random.choice(np.arange(1, 7), p=colors_prob)
+                    last_color = color
+                    self.grid[h, idx[0], idx[1]] = color
 
         if self.grid.sum() == 0:
             x = np.random.choice(np.arange(0, 10))
             y = np.random.choice(np.arange(0, 10))
-            self.grid[0][x][y] = 1
+            self.grid[0][x][y] = np.random.choice(np.arange(1, 7))
 
         #self.grid = np.zeros((9, 11, 11))
         #x = np.random.choice(np.arange(11))
@@ -153,6 +161,13 @@ class TrainTaskController(TaskController):
         modification[modification < 0] = -1
         if modified and (modification != task).any():
             return True
+        return False
+
+class TestTaskController(TaskController):
+    def __init__(self):
+        pass
+
+    def finished(self, obs, prev_obs, task):
         return False
 
 #---------------------------------------------
@@ -418,7 +433,7 @@ class NavigationWorldInitializer:
         blocks = np.transpose(np.nonzero(target))
         n = blocks.shape[0]
 
-        subtask = np.random.choice(np.arange(n))
+        subtask = np.random.choice(np.arange(3))
         subtask = blocks[subtask]
 
         for x in range(subtask[1]):
@@ -462,7 +477,7 @@ class NavigationWorldInitializer:
             y = np.random.choice(np.arange(11))
             z = np.random.choice(np.arange(6))
 
-        pos = (x - 5, z, y - 5, yaw, pitch)
+        pos = (x - 5, z, y - 5, 0, 0)
 
         return start_grid, pos, new_target
 
@@ -532,7 +547,7 @@ if __name__ == '__main__':
 
 
 class EpisodeController(gym.Wrapper):
-    def __init__(self, env, target_generator, subtask_generator, task_controller, subtask_controller, world_initializer, max_subtask_step=150):
+    def __init__(self, env, target_generator, subtask_generator, task_controller, subtask_controller, world_initializer, max_subtask_step=500):
         super().__init__(env)
         self.target_generator = target_generator
         self.subtask_generator = subtask_generator
@@ -569,17 +584,17 @@ class EpisodeController(gym.Wrapper):
         subtask = self.subtask_generator.get_next_subtask()
         self.env.set_task(Task("", self.target, invariant=False))
         self.env.set_subtask(Task("", subtask, invariant=False))
-        self.prev_task = self.env.task
+        self.prev_task = self.env.subtask
         return obs
 
     def step(self, action):
-        print(action)
+        #print(action)
         obs, reward, done, info = super().step(action)
 
         self.steps += 1
         self.subtask_step += 1
 
-        task = self.env.task.target_grid
+        task = self.env.subtask.target_grid
         if self.task_controller.finished(obs, self.prev_obs, task) or self.subtask_step > self.max_subtask_step:
             if self.subtask_step > self.max_subtask_step:
                 reward -= 1.0
@@ -594,8 +609,8 @@ class EpisodeController(gym.Wrapper):
                 print(2, '{{{{{{{{{{{{{{{{{{')
                 done = True
             else:
-                print('----------33333333333333333333333')
                 #self.env.set_task(Task("", subtask, invariant=False))
+                self.prev_task = self.env.subtask
                 self.env.set_subtask(Task("", subtask, invariant=False))
             self.subtask_step = 0
         if done:

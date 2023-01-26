@@ -31,13 +31,13 @@ class OneBlockReward(gym.Wrapper):
             return obs, reward, done, info
         
         action_type = 1 if modification.sum() > 0 else -1
-        task_type = 1 if self.env.task.target_grid.sum() > 0 else -1
+        task_type = 1 if self.env.subtask.target_grid.sum() > 0 else -1
         if action_type != task_type:
             reward += -0.001
         else:
             block = obs['grid'] - self.prev_obs['grid']
             block[np.nonzero(block)] = 1 if block.sum() > 0 else -1
-            target_block = self.env.task.target_grid
+            target_block = self.env.subtask.target_grid
 
             coords1 = np.transpose(np.nonzero(block))[0]
             coords2 = np.transpose(np.nonzero(target_block))[0]
@@ -59,7 +59,7 @@ class PutUnderReward(gym.Wrapper):
         if modification.sum() > 0:
             block = obs['grid'] - self.prev_obs['grid']
             block[np.nonzero(block)] = 1 if block.sum() > 0 else -1
-            target_block = self.env.task.target_grid
+            target_block = self.env.subtask.target_grid
 
             coords1 = np.transpose(np.nonzero(block))[0]
             coords2 = np.transpose(np.nonzero(target_block))[0]
@@ -231,7 +231,7 @@ class Closeness(Wrapper):
 
     def closeness(self, info):
 
-        roi = np.where(self.env.task.target_grid != 0)  # y x z
+        roi = np.where(self.env.subtask.target_grid != 0)  # y x z
         goal = np.mean(roi[1]), np.mean(roi[2]), np.mean(roi[0])
         agent = info['agentPos'][:3]
         agent_pos = agent[0] + 5, agent[2] + 5, agent[1] + 1

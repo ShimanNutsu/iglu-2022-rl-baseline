@@ -10,6 +10,8 @@ from collections import OrderedDict
 logger = logging.getLogger(__file__)
 IGLU_ENABLE_LOG = os.environ.get('IGLU_ENABLE_LOG', '')
 
+from gridworld.tasks import Task
+
 
 class Wrapper(gym.Wrapper):
     def stack_actions(self):
@@ -202,6 +204,11 @@ class WithoutColors(gym.Wrapper):
         self.action_space = gym.spaces.Discrete(self.num_actions)
 
     def step(self, action):
+        if action == self.num_actions - 1:
+            color = self.subtask.target_grid.sum()
+            obs, reward, done, info = super().step(color + 6)
+            if done:
+                return obs, reward, done, info
         if action > 5:
             action += 6
         return super().step(action)
@@ -218,7 +225,7 @@ class SingleActiveAction(gym.Wrapper):
     def step(self, action):
         done_ = False
         if action == self.num_actions - 1:
-            if self.task.target_grid.sum() > 0:
+            if self.subtask.target_grid.sum() > 0:
                 action = self.num_actions
             else:
                 action = self.num_actions - 1
@@ -237,10 +244,10 @@ class InitVarsWrapper(gym.Wrapper):
         self.task_controller = task_controller
         self.subtask_controller = subtask_controller
         self.world_initializer = world_initializer
-        self.task = None
+        self.subtask = Task('', np.ones((9, 11, 11)))
 
     def set_subtask(self, task):
-        self.task = task
+        self.subtask = task
     
     def step(self, action):
         obs, reward, done, info = super().step(action)
@@ -341,14 +348,14 @@ class VisualObservationWrapper(ObsWrapper):
             )
         if info is not None:
             if 'target_grid' in info:
-                target_grid = self.env.task.target_grid
+                target_grid = self.env.subtask.target_grid
             else:
                 # logger.error(f'info: {info}')
                 if hasattr(self.unwrapped, 'should_reset'):
                     self.unwrapped.should_reset(True)
-                target_grid = self.env.task.target_grid
+                target_grid = self.env.subtask.target_grid
         else:
-            target_grid = self.env.task.target_grid
+            target_grid = self.env.subtask.target_grid
 
         if 'pov' in self.env.observation_space.keys():
             return {
