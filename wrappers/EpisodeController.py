@@ -130,7 +130,7 @@ class RandomTargetGenerator(TargetGenerator):
         if self.grid.sum() == 0:
             x = np.random.choice(np.arange(0, 10))
             y = np.random.choice(np.arange(0, 10))
-            self.grid[0][x][y] = 1#np.random.choice(np.arange(1, 7))
+            self.grid[0][x][y] = np.random.choice(np.arange(1, 7))
 
         #self.grid = np.zeros((9, 11, 11))
         #x = np.random.choice(np.arange(11))
@@ -477,7 +477,7 @@ class NavigationWorldInitializer:
             y = np.random.choice(np.arange(11))
             z = np.random.choice(np.arange(6))
 
-        pos = (x - 5, z, y - 5, 0, 0)
+        pos = (x - 5, z, y - 5, yaw, pitch)
 
         return start_grid, pos, new_target
 
@@ -537,6 +537,28 @@ class NavigationSubtaskGenerator(SubtaskGenerator):
         grid[target[0], target[1], target[2]] = target[3]
         return grid
 
+class VisualNavigationWorldInitializer():
+    def __init__():
+        pass
+
+    def init_world(self, target):
+        start_grid = np.zeros((9, 11, 11))
+        x = np.random.choice(np.arange(5))
+        y = np.random.choice(np.arange(1, 11))
+        z = np.random.choice(np.arange(6))
+
+        start_grid[z, x, y] = 1
+        target = start_grid.copy()
+        target[z, x, y - 1] = 1
+
+        x = np.random.choice(np.arange(7, 11))
+        y = np.random.choice(np.arange(1, 11))
+        z = np.random.choice(np.arange(6))
+
+        pos = (x - 5, z, y - 5, 0, 0)
+
+        return start_grid, pos, target
+
 #---------------------------------------------
 
 if __name__ == '__main__':
@@ -545,9 +567,18 @@ if __name__ == '__main__':
         t = RandomTargetGenerator(None, None).get_target()
         a.visualize(t, 'nav/nav' + str(i) + '.png')
 
+def startgridformat(start_grid):
+    blocks = np.where(start_grid)
+    ind = np.lexsort((blocks[0], blocks[2], blocks[1]))
+    Zorig, Xorig, Yorig = blocks[0][ind] - 1, blocks[1][ind] - 5, blocks[2][ind] - 5
+    ids = []
+    for i in range(len(Zorig)):
+        ids.append(int(start_grid[Zorig[i] + 1, Xorig[i] + 5, Yorig[i] + 5]))
+    starting_grid = list(zip(Xorig, Zorig, Yorig, ids))
+    return starting_grid
 
 class EpisodeController(gym.Wrapper):
-    def __init__(self, env, target_generator, subtask_generator, task_controller, subtask_controller, world_initializer, max_subtask_step=150):
+    def __init__(self, env, target_generator, subtask_generator, task_controller, subtask_controller, world_initializer, max_subtask_step=350):
         super().__init__(env)
         self.target_generator = target_generator
         self.subtask_generator = subtask_generator
@@ -574,13 +605,7 @@ class EpisodeController(gym.Wrapper):
         obs['grid'] = start_grid
         self.env.set_prev_obs(obs)
 
-        blocks = np.where(start_grid)
-        ind = np.lexsort((blocks[0], blocks[2], blocks[1]))
-        Zorig, Xorig, Yorig = blocks[0][ind] - 1, blocks[1][ind] - 5, blocks[2][ind] - 5
-        ids = []
-        for i in range(len(Zorig)):
-            ids.append(int(start_grid[Zorig[i] + 1, Xorig[i] + 5, Yorig[i] + 5]))
-        starting_grid = list(zip(Xorig, Zorig, Yorig, ids))
+        starting_grid = startgridformat(start_grid)
 
         self.env.initialize_world(starting_grid, start_pos)
         subtask = self.subtask_generator.get_next_subtask()
@@ -590,7 +615,6 @@ class EpisodeController(gym.Wrapper):
         return obs
 
     def step(self, action):
-        #print(action)
         obs, reward, done, info = super().step(action)
 
         self.steps += 1

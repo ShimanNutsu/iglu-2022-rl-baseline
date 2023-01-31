@@ -204,11 +204,11 @@ class WithoutColors(gym.Wrapper):
         self.action_space = gym.spaces.Discrete(self.num_actions)
 
     def step(self, action):
-        #if action == self.num_actions - 1 and False:
-        #    color = self.subtask.target_grid.sum()
-        #    obs, reward, done, info = super().step(int(color + 5))
-        #    if done:
-        #        return obs, reward, done, info
+        if action == self.num_actions - 1:
+            color = self.subtask.target_grid.sum()
+            obs, reward, done, info = super().step(int(color + 5))
+            #if done:
+            return obs, reward, done, info
         if action > 5:
             action += 6
         return super().step(action)
@@ -252,6 +252,7 @@ class InitVarsWrapper(gym.Wrapper):
     def step(self, action):
         obs, reward, done, info = super().step(action)
         done = False
+        # print(';;;', action)
         if done:
             print('00000000000000000000000000000000')
         return obs, reward, done, info
@@ -315,9 +316,40 @@ class ColorWrapper(ActionsWrapper):
         yield action
 
 
+class VisualTarget(gym.Wrapper):
+    def __init__(self):
+        self.visual_target = None
+        pass
+    
+    def reset(self):
+        obs = super().reset()
+        env = GridWorld(render=True, select_and_place=True, action_space='flying', discretize=True, max_steps=1000, fake=kwargs.get('fake', False))
+        env.reset()
+        env.initialize_world(startgridformat(self.env.task.target_grid), obs['agentPos'])
+        obs2, _, _, _ = env.step(0)
+        self.visual_target = obs2['pov']
+        return obs
+
 class VisualObservationWrapper(ObsWrapper):
     def __init__(self, env):
         super().__init__(env)
+        from PIL import Image
+        im = Image.open('texture.png')
+        im = np.asarray(im)[:, :, :3]
+        self.im = im
+
+        all_colors = np.unique(im.reshape(-1, 3), axis=0)
+
+        self.for_replace = np.unique(im[64: 96, :].reshape(-1, 3), axis=0)
+        self.for_replace = np.concatenate([self.for_replace, np.unique(im[96: , 96:].reshape(-1, 3), axis=0)], axis=0)
+
+        self.replace_ids = []
+        for color in self.for_replace:
+            id = np.transpose(np.where((im == color).all(axis=2)))[0]
+            x = id[0] % 32 + 32*3
+            y = id[1] % 32 + 32*2
+            self.replace_ids.append((x, y))
+
         self.colums = None
         if 'pov' in self.env.observation_space.keys():
             self.observation_space = gym.spaces.Dict({
@@ -348,15 +380,19 @@ class VisualObservationWrapper(ObsWrapper):
             )
         if info is not None:
             if 'target_grid' in info:
-                target_grid = self.env.subtask.target_grid
+                target_grid = self.env.subtask.target_grid.copy()
             else:
                 # logger.error(f'info: {info}')
                 if hasattr(self.unwrapped, 'should_reset'):
                     self.unwrapped.should_reset(True)
-                target_grid = self.env.subtask.target_grid
+                target_grid = self.env.subtask.target_grid.copy()
         else:
-            target_grid = self.env.subtask.target_grid
+            target_grid = self.env.subtask.target_grid.copy()
         target_grid[target_grid > 0] = 1.
+        target_grid = self.env.visual_target
+
+        # for id, color in enumerate(self.for_replace):
+        #     obs['pov'][np.where((obs['pov'] == color).all(axis=2))] = self.im[self.replace_ids[int(id)]]
 
         if 'pov' in self.env.observation_space.keys():
             return {
