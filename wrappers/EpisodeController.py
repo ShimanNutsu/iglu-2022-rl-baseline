@@ -538,24 +538,24 @@ class NavigationSubtaskGenerator(SubtaskGenerator):
         return grid
 
 class VisualNavigationWorldInitializer():
-    def __init__():
+    def __init__(self):
         pass
 
     def init_world(self, target):
         start_grid = np.zeros((9, 11, 11))
         x = np.random.choice(np.arange(5))
-        y = np.random.choice(np.arange(1, 11))
-        z = np.random.choice(np.arange(6))
+        y = np.random.choice(np.arange(4, 7))
 
-        start_grid[z, x, y] = 1
+        start_grid[0, x, y] = 1
         target = start_grid.copy()
-        target[z, x, y - 1] = 1
+        target[0, x, y - 1] = 1
+        print(x, y)
 
         x = np.random.choice(np.arange(7, 11))
-        y = np.random.choice(np.arange(1, 11))
-        z = np.random.choice(np.arange(6))
+        y = np.random.choice(np.arange(y - 3, y + 3))
+        z = np.random.choice(np.arange(3))
 
-        pos = (x - 5, z, y - 5, 0, 0)
+        pos = (x - 5, z, y - 5, -90, 0)
 
         return start_grid, pos, target
 
